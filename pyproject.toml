@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "md_editor"
+version = "0.1.0"
+description = "A Jupyter Lab-like Markdown Editor and Viewer"
+readme = "README.md"
+requires-python = ">=3.7"
+license = { text = "MIT" }
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.22.0",
+    "jinja2>=3.0.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/user/md_editor"
+
+[project.scripts]
+md_editor = "md_editor.main:start"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["md_editor*"]
+
+[tool.setuptools.package-data]
+md_editor = ["templates/*", "static/css/*", "static/js/*", "static/img/*"]

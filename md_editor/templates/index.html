@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Notebook Editor & Viewer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        jupyter: {
+                            blue: '#2196F3',
+                            gray: '#F5F5F5',
+                            border: '#E0E0E0',
+                            text: '#333333',
+                            active: '#2196F3',
+                            cmdMode: '#424242'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- KaTeX for Math LaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <!-- Highlight.js for code block highlight -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <!-- Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Twemoji for vector SVG emoji rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@latest/dist/twemoji.min.js" crossorigin="anonymous"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="h-screen flex flex-col bg-white overflow-hidden text-sm text-jupyter-text font-sans">
+
+    <!-- Top Menu Bar -->
+    <header class="h-9 bg-jupyter-gray border-b border-jupyter-border flex items-center px-4 select-none z-50">
+        <div class="flex items-center space-x-4">
+            <span class="font-bold text-jupyter-blue mr-2"><i class="fa-regular fa-file-lines mr-1"></i>MD Editor</span>
+            
+            <!-- File Menu Dropdown -->
+            <div class="relative group">
+                <button class="px-3 py-1 hover:bg-gray-200 rounded focus:outline-none transition-colors">File</button>
+                <div class="absolute left-0 top-full w-64 bg-white border border-jupyter-border rounded shadow-lg hidden group-hover:block z-50">
+                    <a href="#" id="menu-new-notebook" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100">
+                        <span>New Notebook</span>
+                        <span class="text-xs text-gray-400">Ctrl + N / Ctrl + Alt + N</span>
+                    </a>
+                    <a href="#" id="menu-save-file" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100 border-t border-gray-100">
+                        <span>Save File</span>
+                        <span class="text-xs text-gray-400">Ctrl + S</span>
+                    </a>
+                    <a href="#" id="menu-save-file-as" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100">
+                        <span>Save File As...</span>
+                        <span class="text-xs text-gray-400">Ctrl + Alt + S</span>
+                    </a>
+                    <!-- Save and Export Notebook Submenu -->
+                    <div class="relative group/export group-export">
+                        <div id="menu-save-notebook" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100 cursor-pointer border-t border-gray-100">
+                            <span>Save and Export Notebook</span>
+                            <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                        </div>
+                        <!-- Level 1 Submenu -->
+                        <div class="absolute left-full top-0 w-64 bg-white border border-jupyter-border rounded shadow-lg hidden group-hover/export:block submenu-export z-50">
+                            <a href="#" id="menu-export-markdown" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100">
+                                <span>Markdown (.md)</span>
+                            </a>
+                            <a href="#" id="menu-export-pdf" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100 border-t border-gray-100">
+                                <span>PDF (Browser Print)...</span>
+                            </a>
+                            <a href="#" id="menu-export-html" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100 border-t border-gray-100">
+                                <span>HTML (.html)</span>
+                            </a>
+                        </div>
+                    </div>
+                    <a href="#" id="menu-split-editor" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100 border-t border-gray-100">
+                        <span>Split Editor Vertically</span>
+                        <span class="text-xs text-gray-400">Ctrl + \</span>
+                    </a>
+                    <a href="#" id="menu-delete-file" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100 text-rose-600 font-semibold border-t border-gray-100">
+                        <span>Delete File</span>
+                        <span class="text-xs text-gray-400"></span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Edit Menu Dropdown -->
+            <div class="relative group">
+                <button class="px-3 py-1 hover:bg-gray-200 rounded focus:outline-none transition-colors">Edit</button>
+                <div class="absolute left-0 top-full w-64 bg-white border border-jupyter-border rounded shadow-lg hidden group-hover:block z-50">
+                    <a href="#" id="menu-copy-cell" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100">
+                        <span>Copy Cell</span>
+                        <span class="text-xs text-gray-400">C</span>
+                    </a>
+                    <a href="#" id="menu-cut-cell" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100">
+                        <span>Cut Cell</span>
+                        <span class="text-xs text-gray-400">X</span>
+                    </a>
+                    <a href="#" id="menu-paste-cell-below" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100 border-t border-gray-100">
+                        <span>Paste Cell Below</span>
+                        <span class="text-xs text-gray-400">V</span>
+                    </a>
+                    <a href="#" id="menu-paste-cell-above" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100">
+                        <span>Paste Cell Above</span>
+                        <span class="text-xs text-gray-400">Shift + V</span>
+                    </a>
+                    <a href="#" id="menu-merge-selected-cells" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100 border-t border-gray-100">
+                        <span>Merge Selected Cells</span>
+                        <span class="text-xs text-gray-400">Shift + M</span>
+                    </a>
+                    <a href="#" id="menu-undo-cell" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100 border-t border-gray-100">
+                        <span>Undo Cell Operation</span>
+                        <span class="text-xs text-gray-400">Z</span>
+                    </a>
+                    <a href="#" id="menu-redo-cell" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100">
+                        <span>Redo Cell Operation</span>
+                        <span class="text-xs text-gray-400">Shift + Z</span>
+                    </a>
+                    <a href="#" id="menu-select-all-cells" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100 border-t border-gray-100">
+                        <span>Select All Cells</span>
+                        <span class="text-xs text-gray-400">Ctrl + A</span>
+                    </a>
+                    <a href="#" id="menu-delete-cell" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100 text-rose-600 font-semibold border-t border-gray-100">
+                        <span>Delete Cell</span>
+                        <span class="text-xs text-gray-400">D, D</span>
+                    </a>
+                    <a href="#" id="menu-split-cell" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100 border-t border-gray-100">
+                        <span>Split Cell</span>
+                        <span class="text-xs text-gray-400">Ctrl + Alt + -</span>
+                    </a>
+                    <a href="#" id="menu-recenter-line" class="flex justify-between items-center px-4 py-2 hover:bg-gray-100 border-t border-gray-100">
+                        <span>Recenter Line</span>
+                        <span class="text-xs text-gray-400">Ctrl + Alt + L</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Help Menu Dropdown -->
+            <div class="relative group">
+                <button class="px-3 py-1 hover:bg-gray-200 rounded focus:outline-none transition-colors">Help</button>
+                <div class="absolute left-0 top-full w-60 bg-white border border-jupyter-border rounded shadow-lg hidden group-hover:block z-50">
+                    <a href="#" id="menu-shortcuts" class="px-4 py-2 hover:bg-gray-100 block">Keyboard Shortcuts</a>
+                </div>
+            </div>
+        </div>
+        <div class="ml-auto text-xs text-gray-500 flex items-center space-x-4">
+            <span id="notebook-status"></span>
+            <span class="bg-gray-200 px-2 py-0.5 rounded text-gray-700 font-semibold" id="mode-badge">No File</span>
+            <span id="current-directory-path" class="max-w-xs truncate" title="{{ cwd }}">{{ cwd }}</span>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex overflow-hidden">
+        
+        <!-- Activity Bar (Jupyter Lab style left-most bar) -->
+        <div class="w-10 bg-jupyter-gray border-r border-jupyter-border flex flex-col items-center py-2 flex-shrink-0 select-none">
+            <button id="btn-toggle-sidebar" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-jupyter-blue hover:bg-gray-200 rounded transition-colors bg-gray-200 text-jupyter-blue" title="Toggle File Browser (Ctrl+Shift+F)">
+                <i class="fa-solid fa-folder text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Left Sidebar: File Browser -->
+        <aside id="file-browser" class="w-64 bg-jupyter-gray border-r border-jupyter-border flex flex-col flex-shrink-0">
+            <!-- Header with New File, New Folder, Title, and Refresh -->
+            <div class="px-3 py-2 border-b border-jupyter-border flex items-center justify-between space-x-2">
+                <div class="flex items-center space-x-2">
+                    <!-- New File button (JupyterLab style rectangular blue button with white +) -->
+                    <button id="btn-new-file" class="w-7 h-6 bg-jupyter-blue hover:bg-blue-600 text-white rounded flex items-center justify-center shadow-xs transition-colors" title="New File">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                    </button>
+                    <!-- New Folder button (folder with plus icon) -->
+                    <button id="btn-new-folder" class="w-7 h-6 flex items-center justify-center text-gray-500 hover:text-jupyter-blue hover:bg-gray-200 rounded transition-colors text-sm" title="New Folder">
+                        <i class="fa-solid fa-folder-plus"></i>
+                    </button>
+                </div>
+                <span class="font-bold text-gray-600 uppercase text-xs tracking-wider select-none truncate">File Browser</span>
+                <button id="refresh-files-btn" class="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-jupyter-blue hover:bg-gray-200 rounded transition-colors" title="Refresh">
+                    <i class="fa-solid fa-arrows-rotate text-xs"></i>
+                </button>
+            </div>
+            <!-- Breadcrumbs Navigation Bar (JupyterLab style: [Folder icon]/subfolder/) -->
+            <div id="breadcrumb-bar" class="px-3 py-1.5 border-b border-jupyter-border bg-white flex items-center text-xs text-gray-600 select-none overflow-x-auto no-scrollbar whitespace-nowrap">
+                <!-- Dynamically populated by renderBreadcrumbs -->
+            </div>
+            <!-- File list container -->
+            <div class="relative flex-1 overflow-hidden flex flex-col">
+                <div id="file-list" class="flex-1 overflow-y-auto p-2 space-y-1 transition-colors duration-150">
+                    <!-- Will be dynamically populated -->
+                    <div class="text-gray-400 text-center py-4 text-xs">Loading...</div>
+                </div>
+                <div id="file-drop-overlay" class="absolute inset-0 bg-blue-50/90 border-2 border-dashed border-jupyter-blue pointer-events-none flex flex-col items-center justify-center z-20 hidden text-jupyter-blue">
+                    <i class="fa-solid fa-cloud-arrow-up text-2xl mb-1"></i>
+                    <span class="text-xs font-semibold">Drop files to upload</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Main Space: Editor Container -->
+        <main class="flex-1 bg-white flex flex-col overflow-hidden relative">
+            
+            <!-- Empty state when no notebook is active -->
+            <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 bg-gray-50">
+                <i class="fa-regular fa-file-code text-5xl mb-4 text-gray-300"></i>
+                <p class="text-base font-semibold mb-2 text-gray-600">No Notebook Open</p>
+                <p class="text-xs mb-4 text-gray-400">Click "File -> New Notebook" or press Ctrl + N to start.</p>
+                <button id="empty-new-btn" class="bg-jupyter-blue hover:bg-blue-600 text-white px-4 py-2 rounded text-xs shadow transition-colors">
+                    Create New Notebook
+                </button>
+            </div>
+
+            <!-- Notebook Workspace (Split Panes Container - Up to 3 Panes) -->
+            <div id="notebook-container" class="flex-1 hidden flex flex-row h-full bg-white overflow-hidden relative">
+                
+                <!-- Pane 0 (First Pane) -->
+                <div id="pane-0" class="pane flex-1 flex flex-col h-full bg-white overflow-hidden relative" data-pane-id="0">
+                    <!-- Tab Bar -->
+                    <div class="pane-tab-bar h-9 bg-jupyter-gray border-b border-jupyter-border flex items-center justify-between px-2 select-none flex-shrink-0">
+                        <div class="pane-tabs-list flex items-center space-x-1 overflow-x-auto no-scrollbar flex-1 h-full py-1">
+                            <!-- Dynamic tabs -->
+                        </div>
+                        <div class="pane-tab-actions flex items-center space-x-1 ml-2 flex-shrink-0 text-gray-500">
+                            <button class="btn-new-tab p-1 hover:text-jupyter-blue hover:bg-gray-200 rounded transition-colors" title="New Tab (Ctrl+Alt+N)">
+                                <i class="fa-solid fa-plus text-xs"></i>
+                            </button>
+                            <button class="btn-split-pane p-1 hover:text-jupyter-blue hover:bg-gray-200 rounded transition-colors" title="Split Editor Vertically (Ctrl+\ or vs)">
+                                <i class="fa-solid fa-columns text-xs"></i>
+                            </button>
+                            <button class="btn-close-pane hidden p-1 hover:text-rose-600 hover:bg-gray-200 rounded transition-colors" title="Close Pane">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Notebook Header (Filename Input & Save) -->
+                    <div class="pane-header px-4 py-2 border-b border-jupyter-border bg-gray-50 flex items-center justify-between sticky top-0 z-10 shadow-sm flex-shrink-0">
+                        <div class="flex items-center space-x-2 w-full max-w-md">
+                            <i class="fa-solid fa-file-signature text-gray-400"></i>
+                            <input type="text" class="notebook-name-input bg-transparent border-b border-transparent hover:border-gray-300 focus:border-jupyter-blue focus:outline-none font-bold text-base px-1 py-0.5 w-full" value="untitled">
+                            <span class="notebook-ext-label text-gray-500 font-bold text-base">.md</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="save-btn px-3 py-1 bg-jupyter-blue hover:bg-blue-600 text-white rounded text-xs flex items-center shadow transition-colors font-semibold" title="Save Notebook">
+                                <i class="fa-solid fa-floppy-disk mr-1.5"></i>Save
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Pane Prompt Bar (Replace / Go to Line) -->
+                    <div id="pane-prompt-bar-0" class="pane-prompt-bar hidden px-4 py-1.5 bg-slate-100 border-b border-jupyter-border flex items-center justify-between text-xs shadow-inner flex-shrink-0 z-10" data-pane-id="0"></div>
+
+                    <!-- Scrollable Cells Area -->
+                    <div class="pane-cells-container flex-1 overflow-y-auto bg-white">
+                        <div class="cells-list p-4 pb-8 space-y-4 max-w-4xl mx-auto w-full">
+                            <!-- Dynamic Cells -->
+                        </div>
+                    </div>
+
+                    <!-- Drop Overlay for Split/Move -->
+                    <div class="pane-drop-overlay hidden absolute inset-0 bg-blue-100 bg-opacity-40 border-2 border-dashed border-jupyter-blue z-30 flex items-center justify-center pointer-events-none">
+                        <span class="bg-white px-3 py-1.5 rounded shadow text-xs font-semibold text-jupyter-blue">タブを移動 (Drop to move)</span>
+                    </div>
+
+                    <!-- Scrollbar Markers for TODO/NOTE comments -->
+                    <div id="pane-scrollbar-markers-0" class="pane-scrollbar-markers"></div>
+                </div>
+
+                <!-- Pane Divider 0 -->
+                <div id="divider-0" class="pane-divider hidden w-1.5 bg-gray-200 hover:bg-jupyter-blue cursor-col-resize select-none flex-shrink-0 transition-colors z-20" data-divider-id="0"></div>
+
+                <!-- Pane 1 (Second Pane) -->
+                <div id="pane-1" class="pane hidden flex-1 flex flex-col h-full bg-white overflow-hidden relative" data-pane-id="1">
+                    <!-- Tab Bar -->
+                    <div class="pane-tab-bar h-9 bg-jupyter-gray border-b border-jupyter-border flex items-center justify-between px-2 select-none flex-shrink-0">
+                        <div class="pane-tabs-list flex items-center space-x-1 overflow-x-auto no-scrollbar flex-1 h-full py-1">
+                            <!-- Dynamic tabs -->
+                        </div>
+                        <div class="pane-tab-actions flex items-center space-x-1 ml-2 flex-shrink-0 text-gray-500">
+                            <button class="btn-new-tab p-1 hover:text-jupyter-blue hover:bg-gray-200 rounded transition-colors" title="New Tab (Ctrl+Alt+N)">
+                                <i class="fa-solid fa-plus text-xs"></i>
+                            </button>
+                            <button class="btn-split-pane p-1 hover:text-jupyter-blue hover:bg-gray-200 rounded transition-colors" title="Split Editor Vertically (Ctrl+\ or vs)">
+                                <i class="fa-solid fa-columns text-xs"></i>
+                            </button>
+                            <button class="btn-close-pane p-1 hover:text-rose-600 hover:bg-gray-200 rounded transition-colors" title="Close Pane">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Notebook Header (Filename Input & Save) -->
+                    <div class="pane-header px-4 py-2 border-b border-jupyter-border bg-gray-50 flex items-center justify-between sticky top-0 z-10 shadow-sm flex-shrink-0">
+                        <div class="flex items-center space-x-2 w-full max-w-md">
+                            <i class="fa-solid fa-file-signature text-gray-400"></i>
+                            <input type="text" class="notebook-name-input bg-transparent border-b border-transparent hover:border-gray-300 focus:border-jupyter-blue focus:outline-none font-bold text-base px-1 py-0.5 w-full" value="untitled">
+                            <span class="notebook-ext-label text-gray-500 font-bold text-base">.md</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="save-btn px-3 py-1 bg-jupyter-blue hover:bg-blue-600 text-white rounded text-xs flex items-center shadow transition-colors font-semibold" title="Save Notebook">
+                                <i class="fa-solid fa-floppy-disk mr-1.5"></i>Save
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Pane Prompt Bar (Replace / Go to Line) -->
+                    <div id="pane-prompt-bar-1" class="pane-prompt-bar hidden px-4 py-1.5 bg-slate-100 border-b border-jupyter-border flex items-center justify-between text-xs shadow-inner flex-shrink-0 z-10" data-pane-id="1"></div>
+
+                    <!-- Scrollable Cells Area -->
+                    <div class="pane-cells-container flex-1 overflow-y-auto bg-white">
+                        <div class="cells-list p-4 pb-8 space-y-4 max-w-4xl mx-auto w-full">
+                            <!-- Dynamic Cells -->
+                        </div>
+                    </div>
+
+                    <!-- Drop Overlay for Split/Move -->
+                    <div class="pane-drop-overlay hidden absolute inset-0 bg-blue-100 bg-opacity-40 border-2 border-dashed border-jupyter-blue z-30 flex items-center justify-center pointer-events-none">
+                        <span class="bg-white px-3 py-1.5 rounded shadow text-xs font-semibold text-jupyter-blue">タブを移動 (Drop to move)</span>
+                    </div>
+
+                    <!-- Scrollbar Markers for TODO/NOTE comments -->
+                    <div id="pane-scrollbar-markers-1" class="pane-scrollbar-markers"></div>
+                </div>
+
+                <!-- Pane Divider 1 -->
+                <div id="divider-1" class="pane-divider hidden w-1.5 bg-gray-200 hover:bg-jupyter-blue cursor-col-resize select-none flex-shrink-0 transition-colors z-20" data-divider-id="1"></div>
+
+                <!-- Pane 2 (Third Pane) -->
+                <div id="pane-2" class="pane hidden flex-1 flex flex-col h-full bg-white overflow-hidden relative" data-pane-id="2">
+                    <!-- Tab Bar -->
+                    <div class="pane-tab-bar h-9 bg-jupyter-gray border-b border-jupyter-border flex items-center justify-between px-2 select-none flex-shrink-0">
+                        <div class="pane-tabs-list flex items-center space-x-1 overflow-x-auto no-scrollbar flex-1 h-full py-1">
+                            <!-- Dynamic tabs -->
+                        </div>
+                        <div class="pane-tab-actions flex items-center space-x-1 ml-2 flex-shrink-0 text-gray-500">
+                            <button class="btn-new-tab p-1 hover:text-jupyter-blue hover:bg-gray-200 rounded transition-colors" title="New Tab (Ctrl+Alt+N)">
+                                <i class="fa-solid fa-plus text-xs"></i>
+                            </button>
+                            <button class="btn-close-pane p-1 hover:text-rose-600 hover:bg-gray-200 rounded transition-colors" title="Close Pane">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Notebook Header (Filename Input & Save) -->
+                    <div class="pane-header px-4 py-2 border-b border-jupyter-border bg-gray-50 flex items-center justify-between sticky top-0 z-10 shadow-sm flex-shrink-0">
+                        <div class="flex items-center space-x-2 w-full max-w-md">
+                            <i class="fa-solid fa-file-signature text-gray-400"></i>
+                            <input type="text" class="notebook-name-input bg-transparent border-b border-transparent hover:border-gray-300 focus:border-jupyter-blue focus:outline-none font-bold text-base px-1 py-0.5 w-full" value="untitled">
+                            <span class="notebook-ext-label text-gray-500 font-bold text-base">.md</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="save-btn px-3 py-1 bg-jupyter-blue hover:bg-blue-600 text-white rounded text-xs flex items-center shadow transition-colors font-semibold" title="Save Notebook">
+                                <i class="fa-solid fa-floppy-disk mr-1.5"></i>Save
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Pane Prompt Bar (Replace / Go to Line) -->
+                    <div id="pane-prompt-bar-2" class="pane-prompt-bar hidden px-4 py-1.5 bg-slate-100 border-b border-jupyter-border flex items-center justify-between text-xs shadow-inner flex-shrink-0 z-10" data-pane-id="2"></div>
+
+                    <!-- Scrollable Cells Area -->
+                    <div class="pane-cells-container flex-1 overflow-y-auto bg-white">
+                        <div class="cells-list p-4 pb-8 space-y-4 max-w-4xl mx-auto w-full">
+                            <!-- Dynamic Cells -->
+                        </div>
+                    </div>
+
+                    <!-- Drop Overlay for Split/Move -->
+                    <div class="pane-drop-overlay hidden absolute inset-0 bg-blue-100 bg-opacity-40 border-2 border-dashed border-jupyter-blue z-30 flex items-center justify-center pointer-events-none">
+                        <span class="bg-white px-3 py-1.5 rounded shadow text-xs font-semibold text-jupyter-blue">タブを移動 (Drop to move)</span>
+                    </div>
+
+                    <!-- Scrollbar Markers for TODO/NOTE comments -->
+                    <div id="pane-scrollbar-markers-2" class="pane-scrollbar-markers"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Help Modal (Keyboard Shortcuts) -->
+    <div id="shortcuts-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden border border-jupyter-border">
+            <div class="px-6 py-4 bg-jupyter-gray border-b border-jupyter-border flex justify-between items-center">
+                <h3 class="font-bold text-gray-700 text-base">Jupyter Lab Keyboard Shortcuts</h3>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[70vh] space-y-4">
+                <div>
+                    <h4 class="font-semibold text-jupyter-blue mb-2">Edit Mode (編集モード) - セル入力中</h4>
+                    <ul class="space-y-1 text-xs">
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Esc</kbd> <span class="text-gray-600">Commandモードへ移行</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Enter</kbd> <span class="text-gray-600">セルを実行し、Commandモードへ移行</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Shift + Enter</kbd> <span class="text-gray-600">セルを実行（プレビュー）し、下のセルを選択（無ければ新規作成）</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + /</kbd> <span class="text-gray-600">選択範囲 / 現在行をコメントアウトトグル</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Alt + -</kbd> <span class="text-gray-600">選択範囲に基づいてセルを分割する (Split Cell)</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Shift + K</kbd> <span class="text-gray-600">現在行を削除（複数行選択時は複数行削除）</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Shift + D</kbd> <span class="text-gray-600">現在行（または選択中の複数行）を下へ複製</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Shift + ↑ / ↓</kbd> <span class="text-gray-600">選択行 / 現在行を上下に移動（同一セル内）</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + B</kbd> <span class="text-gray-600">選択文字列を強調表示（**太字**）</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + I</kbd> <span class="text-gray-600">選択文字列を斜体表示（*イタリック*）</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Alt + L</kbd> <span class="text-gray-600">現在行をヘッダー下線から12行下の位置に移動</span></li>
+                    </ul>
+                </div>
+                <hr class="border-gray-100">
+                <div>
+                    <h4 class="font-semibold text-jupyter-blue mb-2">Command Mode (コマンドモード) - セル選択中</h4>
+                    <ul class="space-y-1 text-xs">
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Enter</kbd> <span class="text-gray-600">選択中のセルを編集する（Editモードへ移行）</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">J</kbd> または <kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">↓</kbd> <span class="text-gray-600">下のセルを選択</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">K</kbd> または <kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">↑</kbd> <span class="text-gray-600">上のセルを選択</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">H</kbd> または <kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">←</kbd> <span class="text-gray-600">左のペインへ移動</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">L</kbd> または <kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">→</kbd> <span class="text-gray-600">右のペインへ移動</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Shift + ↑ / ↓</kbd> <span class="text-gray-600">選択中のセルを上下に移動（順序変更）</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">A</kbd> <span class="text-gray-600">選択しているセルの「上」に新しいセルを追加</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">B</kbd> <span class="text-gray-600">選択しているセルの「下」に新しいセルを追加</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">D, D</kbd> (Dを2回) <span class="text-gray-600">選択中のセルを削除</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">C</kbd> <span class="text-gray-600">選択中のセルをコピー</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">X</kbd> <span class="text-gray-600">選択中のセルをカット</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">V</kbd> <span class="text-gray-600">コピー/カットしたセルを下に貼り付け</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Shift + V</kbd> <span class="text-gray-600">コピー/カットしたセルを上に貼り付け</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Shift + クリック / 矢印キー</kbd> <span class="text-gray-600">複数セルを選択状態にする</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Shift + M</kbd> <span class="text-gray-600">複数選択されたセルを全て結合</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Z</kbd> <span class="text-gray-600">セル操作のUndo（元に戻す）</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Shift + Z</kbd> <span class="text-gray-600">セル操作のRedo（やり直す）</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + A</kbd> <span class="text-gray-600">すべてのセルを選択</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Alt + L</kbd> <span class="text-gray-600">選択セルの上枠をヘッダー下線から2行下の位置に移動</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">G, G</kbd> <span class="text-gray-600">先頭セルへ移動</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">[番号] + G, G</kbd> <span class="text-gray-600">指定番号のセルを選択し画面中央へ移動 (例: 5gg)</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Shift + G</kbd> <span class="text-gray-600">末尾セルへ移動</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Shift + Enter</kbd> <span class="text-gray-600">セルを実行（プレビュー）</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + \</kbd> <span class="text-gray-600">画面を垂直（左右）に分割（最大3ペイン）</span></li>
+                    </ul>
+                </div>
+                <hr class="border-gray-100">
+                <div>
+                    <h4 class="font-semibold text-jupyter-blue mb-2">Global Shortcuts (共通)</h4>
+                    <ul class="space-y-1 text-xs">
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Shift + ← / H</kbd> <span class="text-gray-600">左のタブへ切り替え</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Shift + → / L</kbd> <span class="text-gray-600">右のタブへ切り替え</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + N / Ctrl + Alt + N</kbd> <span class="text-gray-600">新規ノートブック（タブ）を作成</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Alt + W</kbd> <span class="text-gray-600">現在のタブを閉じる</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Alt + M</kbd> <span class="text-gray-600">右側のペインを左隣へ統合 (マージ)</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + S</kbd> <span class="text-gray-600">ファイルを保存</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Alt + S</kbd> <span class="text-gray-600">名前をつけてファイルを保存</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + \</kbd> <span class="text-gray-600">垂直分割 (Split Vertically, 最大3ペイン)</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + C / X / V</kbd> <span class="text-gray-600">ファイル操作 (選択ファイルのコピー / カット / 貼り付け)</span></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="px-6 py-3 bg-gray-50 border-t border-jupyter-border flex justify-end">
+                <button id="close-modal-footer-btn" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-xs transition-colors font-semibold">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unsaved Changes Alert Modal -->
+    <div id="unsaved-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden border border-jupyter-border">
+            <div class="px-6 py-4 bg-jupyter-gray border-b border-jupyter-border">
+                <h3 class="font-bold text-gray-700 text-sm">Save Changes?</h3>
+            </div>
+            <div class="p-6">
+                <p class="text-xs text-gray-600 leading-relaxed">
+                    Notebook "<span id="unsaved-notebook-name" class="font-semibold text-gray-800"></span>" has unsaved changes. Do you want to save them before leaving?
+                </p>
+            </div>
+            <div class="px-6 py-3 bg-gray-50 border-t border-jupyter-border flex justify-end space-x-2 text-xs">
+                <button id="unsaved-cancel-btn" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded transition-colors font-semibold">
+                    Cancel
+                </button>
+                <button id="unsaved-dont-save-btn" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded transition-colors border border-rose-200 font-semibold">
+                    Don't Save
+                </button>
+                <button id="unsaved-save-btn" class="px-3 py-1.5 bg-jupyter-blue hover:bg-blue-600 text-white rounded shadow transition-colors font-semibold">
+                    Save as
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Context Menu for Sidebar Files -->
+    <div id="file-context-menu" class="fixed hidden bg-white border border-jupyter-border rounded shadow-lg z-50 py-1 w-36 text-xs select-none">
+        <button type="button" id="context-copy-btn" class="w-full text-left flex items-center justify-between px-3 py-1.5 text-gray-700 hover:bg-gray-100 font-medium cursor-pointer">
+            <span class="flex items-center"><i class="fa-regular fa-copy mr-2 text-jupyter-blue w-3.5"></i>Copy</span>
+            <span class="text-[10px] text-gray-400 font-mono">Ctrl+C</span>
+        </button>
+        <button type="button" id="context-cut-btn" class="w-full text-left flex items-center justify-between px-3 py-1.5 text-gray-700 hover:bg-gray-100 font-medium cursor-pointer">
+            <span class="flex items-center"><i class="fa-solid fa-scissors mr-2 text-jupyter-blue w-3.5"></i>Cut</span>
+            <span class="text-[10px] text-gray-400 font-mono">Ctrl+X</span>
+        </button>
+        <button type="button" id="context-paste-btn" class="w-full text-left flex items-center justify-between px-3 py-1.5 text-gray-700 hover:bg-gray-100 font-medium cursor-pointer">
+            <span class="flex items-center"><i class="fa-regular fa-paste mr-2 text-jupyter-blue w-3.5"></i>Paste</span>
+            <span class="text-[10px] text-gray-400 font-mono">Ctrl+V</span>
+        </button>
+        <hr id="context-divider" class="my-1 border-gray-100">
+        <button type="button" id="context-rename-btn" class="w-full text-left flex items-center px-3 py-1.5 text-gray-700 hover:bg-gray-100 font-medium cursor-pointer">
+            <i class="fa-regular fa-pen-to-square mr-2 text-jupyter-blue w-3.5"></i>Rename
+        </button>
+        <button type="button" id="context-delete-btn" class="w-full text-left flex items-center px-3 py-1.5 text-rose-600 hover:bg-rose-50 font-medium border-t border-gray-100 cursor-pointer">
+            <i class="fa-regular fa-trash-can mr-2 w-3.5"></i>Delete
+        </button>
+    </div>
+
+    <!-- App JavaScript with cache busting -->
+    <script src="/static/js/app.js?v={{ version | default('1') }}"></script>
+</body>
+</html>

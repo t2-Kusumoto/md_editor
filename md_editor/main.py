@@ -513,10 +513,11 @@ async def copy_file_item(req: CopyRequest):
 
 
 active_connections = 0
+is_shutting_down = False
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global active_connections
+    global active_connections, is_shutting_down
     await websocket.accept()
     active_connections += 1
     try:
@@ -528,17 +529,21 @@ async def websocket_endpoint(websocket: WebSocket):
         if active_connections == 0:
             # Wait a few seconds in case it's a page reload (F5)
             await asyncio.sleep(3)
-            if active_connections == 0:
+            if active_connections == 0 and not is_shutting_down:
+                is_shutting_down = True
                 print("All UI clients disconnected. Shutting down server...")
                 os.kill(os.getpid(), signal.SIGINT)
 
 @app.post("/api/shutdown")
 async def shutdown_api():
-    print("Quit button pressed. Shutting down server...")
-    async def delayed_shutdown():
-        await asyncio.sleep(0.5)
-        os.kill(os.getpid(), signal.SIGINT)
-    asyncio.create_task(delayed_shutdown())
+    global is_shutting_down
+    if not is_shutting_down:
+        is_shutting_down = True
+        print("Quit button pressed. Shutting down server...")
+        async def delayed_shutdown():
+            await asyncio.sleep(0.5)
+            os.kill(os.getpid(), signal.SIGINT)
+        asyncio.create_task(delayed_shutdown())
     return {"status": "shutting_down"}
 
 @app.get("/api/status")
@@ -569,7 +574,12 @@ def start():
 
     print(f"Starting Markdown Editor & Viewer in: {BASE_DIR}")
     print(f"Point your browser to http://127.0.0.1:{port}")
-    uvicorn.run(app, host="127.0.0.1", port=port, reload=False)
+    try:
+        uvicorn.run(app, host="127.0.0.1", port=port, reload=False)
+    except KeyboardInterrupt:
+        pass
+    except asyncio.CancelledError:
+        pass
 
 if __name__ == "__main__":
     start()

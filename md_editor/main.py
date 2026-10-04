@@ -4,7 +4,7 @@ import mimetypes
 import urllib.parse
 import urllib.request
 import webbrowser
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -13,6 +13,8 @@ from contextlib import asynccontextmanager
 import uvicorn
 import threading
 import time
+import asyncio
+import signal
 
 import shutil
 
@@ -509,10 +511,65 @@ async def copy_file_item(req: CopyRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+active_connections = 0
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    global active_connections
+    await websocket.accept()
+    active_connections += 1
+    try:
+        while True:
+            # Keep the connection open and wait for disconnect
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        active_connections -= 1
+        if active_connections == 0:
+            # Wait a few seconds in case it's a page reload (F5)
+            await asyncio.sleep(3)
+            if active_connections == 0:
+                print("All UI clients disconnected. Shutting down server...")
+                os.kill(os.getpid(), signal.SIGINT)
+
+@app.post("/api/shutdown")
+async def shutdown_api():
+    print("Quit button pressed. Shutting down server...")
+    async def delayed_shutdown():
+        await asyncio.sleep(0.5)
+        os.kill(os.getpid(), signal.SIGINT)
+    asyncio.create_task(delayed_shutdown())
+    return {"status": "shutting_down"}
+
+@app.get("/api/status")
+async def get_status():
+    return {"app": "md_editor", "status": "running"}
+
+import json
+import urllib.error
+
+def is_server_running(port: int) -> bool:
+    try:
+        req = urllib.request.Request(f"http://127.0.0.1:{port}/api/status")
+        with urllib.request.urlopen(req, timeout=1.0) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode('utf-8'))
+                if data.get("app") == "md_editor":
+                    return True
+    except Exception:
+        pass
+    return False
+
 def start():
+    port = 18000
+    if is_server_running(port):
+        print(f"Server is already running on port {port}. Opening browser to restore session...")
+        webbrowser.open(f"http://127.0.0.1:{port}")
+        return
+
     print(f"Starting Markdown Editor & Viewer in: {BASE_DIR}")
-    print("Point your browser to http://127.0.0.1:18000")
-    uvicorn.run(app, host="127.0.0.1", port=18000, reload=False)
+    print(f"Point your browser to http://127.0.0.1:{port}")
+    uvicorn.run(app, host="127.0.0.1", port=port, reload=False)
 
 if __name__ == "__main__":
     start()

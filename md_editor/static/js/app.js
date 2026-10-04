@@ -6872,3 +6872,39 @@ function attachTextareaEvents(textarea, index, cell, paneIdx) {
         }
     });
 }
+
+// --- Application Shutdown & WebSocket Disconnect Detection ---
+
+// Establish a WebSocket connection to let the server know this UI is active.
+// When all UIs disconnect (e.g. tabs closed), the server will shut down automatically.
+function connectWebSocket() {
+    const ws = new WebSocket(`ws://${location.host}/ws`);
+    ws.onclose = () => {
+        console.log("WebSocket disconnected");
+    };
+}
+connectWebSocket();
+
+// Handle the explicit "Quit" button
+const quitBtn = document.getElementById('quit-btn');
+if (quitBtn) {
+    quitBtn.addEventListener('click', async () => {
+        if (confirm("Are you sure you want to quit the application?")) {
+            try {
+                await fetch('/api/shutdown', { method: 'POST' });
+                // Replace the entire body with a closed message
+                document.body.innerHTML = `
+                    <div class="h-screen w-screen flex flex-col items-center justify-center bg-gray-900 text-white">
+                        <div class="text-4xl mb-4"><i class="fas fa-power-off"></i></div>
+                        <h1 class="text-2xl font-bold mb-2">Application Closed</h1>
+                        <p class="text-gray-400">The local server has been shut down successfully.</p>
+                        <p class="text-gray-400 mt-2">You can safely close this browser tab.</p>
+                    </div>
+                `;
+            } catch (e) {
+                console.error("Error shutting down:", e);
+                alert("Failed to shut down the server. It might already be closed.");
+            }
+        }
+    });
+}

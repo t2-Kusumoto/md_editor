@@ -34,8 +34,15 @@ const refreshFilesBtn = document.getElementById('refresh-files-btn');
 const btnNewFile = document.getElementById('btn-new-file');
 const btnNewFolder = document.getElementById('btn-new-folder');
 const breadcrumbBar = document.getElementById('breadcrumb-bar');
+const sidebarContainer = document.getElementById('sidebar-container');
 const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
 const fileBrowser = document.getElementById('file-browser');
+const btnToggleToc = document.getElementById('btn-toggle-toc');
+const tocPanel = document.getElementById('toc-panel');
+const tocList = document.getElementById('toc-list');
+const refreshTocBtn = document.getElementById('refresh-toc-btn');
+const closeTocBtn = document.getElementById('close-toc-btn');
+let isTocOpen = false;
 const fileContextMenu = document.getElementById('file-context-menu');
 const contextCopyBtn = document.getElementById('context-copy-btn');
 const contextCutBtn = document.getElementById('context-cut-btn');
@@ -208,6 +215,7 @@ function initPanes() {
         panes[i].nameInputEl.addEventListener('click', (e) => {
             e.stopPropagation();
             setActivePane(paneIdx);
+            panes[i].nameInputEl.dataset.isEditing = 'true';
             if (cellStateBeforeRename === null) {
                 saveCellStateBeforeRename(paneIdx);
             }
@@ -216,6 +224,7 @@ function initPanes() {
 
         panes[i].nameInputEl.addEventListener('focus', () => {
             setActivePane(paneIdx);
+            panes[i].nameInputEl.dataset.isEditing = 'true';
             if (cellStateBeforeRename === null) {
                 saveCellStateBeforeRename(paneIdx);
             }
@@ -224,7 +233,34 @@ function initPanes() {
             }, 30);
         });
 
+        panes[i].nameInputEl.addEventListener('beforeinput', (e) => {
+            if (e.inputType === 'historyUndo' || e.inputType === 'historyRedo') {
+                if (panes[i].nameInputEl.dataset.isEditing !== 'true' || document.activeElement !== panes[i].nameInputEl) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }
+        });
+
+        panes[i].nameInputEl.addEventListener('input', () => {
+            const doc = getPaneActiveDocument(paneIdx);
+            if (!doc) return;
+            if (panes[i].nameInputEl.dataset.isEditing !== 'true' || document.activeElement !== panes[i].nameInputEl) {
+                if (panes[i].nameInputEl.value !== doc.filename) {
+                    panes[i].nameInputEl.value = doc.filename;
+                }
+            }
+        });
+
         panes[i].nameInputEl.addEventListener('keydown', async (e) => {
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key.toLowerCase() === 'z' || e.code === 'KeyZ')) {
+                if (panes[i].nameInputEl.dataset.isEditing !== 'true') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+            }
+
             if (e.key === 'Enter') {
                 e.preventDefault();
                 e.stopPropagation();
@@ -237,7 +273,9 @@ function initPanes() {
 
                 if (!newName) {
                     alert('Filename cannot be empty.');
+                    panes[i].nameInputEl.dataset.isEditing = 'false';
                     panes[i].nameInputEl.value = oldName;
+                    panes[i].nameInputEl.defaultValue = oldName;
                     panes[i].nameInputEl.blur();
                     restoreCellStateAfterRename();
                     return;
@@ -269,6 +307,9 @@ function initPanes() {
                     }
                 }
 
+                panes[i].nameInputEl.dataset.isEditing = 'false';
+                panes[i].nameInputEl.defaultValue = doc.filename;
+                panes[i].nameInputEl.value = doc.filename;
                 panes[i].nameInputEl.blur();
                 restoreCellStateAfterRename();
             } else if (e.key === 'Escape') {
@@ -277,20 +318,27 @@ function initPanes() {
                 const doc = getPaneActiveDocument(paneIdx);
                 if (doc) {
                     panes[i].nameInputEl.value = doc.filename;
+                    panes[i].nameInputEl.defaultValue = doc.filename;
                 }
+                panes[i].nameInputEl.dataset.isEditing = 'false';
                 panes[i].nameInputEl.blur();
                 restoreCellStateAfterRename();
             }
         });
 
         panes[i].nameInputEl.addEventListener('blur', () => {
+            panes[i].nameInputEl.dataset.isEditing = 'false';
             setTimeout(() => {
+                const doc = getPaneActiveDocument(paneIdx);
                 if (cellStateBeforeRename && cellStateBeforeRename.paneIdx === paneIdx) {
-                    const doc = getPaneActiveDocument(paneIdx);
                     if (doc) {
                         panes[i].nameInputEl.value = doc.filename;
+                        panes[i].nameInputEl.defaultValue = doc.filename;
                     }
                     cellStateBeforeRename = null;
+                } else if (doc) {
+                    panes[i].nameInputEl.value = doc.filename;
+                    panes[i].nameInputEl.defaultValue = doc.filename;
                 }
             }, 250);
         });
@@ -539,6 +587,9 @@ function setActivePane(paneIdx) {
     }
     updateModeBadge();
     updateStatus();
+    if (isTocOpen) {
+        renderToc();
+    }
 }
 
 function focusPane(paneIdx) {
@@ -986,7 +1037,7 @@ function closePane(paneIdx) {
     }
 }
 
-// Merge the rightmost pane into its adjacent left pane (Ctrl + Alt + M)
+// Merge the active pane into its adjacent left pane (Ctrl + Alt + M)
 function mergeLastPane() {
     if (openPaneCount <= 1) return;
     // Only perform merge when pane 2 or pane 3 is active (pane 1 active -> no-op)
@@ -997,8 +1048,8 @@ function mergeLastPane() {
         syncDocEditingState(doc);
     }
 
-    const sourceIdx = openPaneCount - 1;
-    const targetIdx = openPaneCount - 2;
+    const sourceIdx = activePaneIndex;
+    const targetIdx = activePaneIndex - 1;
     const sourcePane = panes[sourceIdx];
     const targetPane = panes[targetIdx];
     const sourceActiveTab = sourcePane.activeTabId;
@@ -1010,26 +1061,26 @@ function mergeLastPane() {
         }
     });
 
-    // Determine active pane and active tab:
-    // If user was focused on the source pane (which is closing), move to target pane and activate the source's tab
-    if (activePaneIndex === sourceIdx) {
-        activePaneIndex = targetIdx;
-        if (sourceActiveTab && targetPane.tabs.includes(sourceActiveTab)) {
-            targetPane.activeTabId = sourceActiveTab;
-        }
-    } else {
-        activePaneIndex = Math.min(activePaneIndex, targetIdx);
-    }
-
-    if (!targetPane.activeTabId && targetPane.tabs.length > 0) {
+    // In targetPane, activate the tab from sourcePane that was active
+    if (sourceActiveTab && targetPane.tabs.includes(sourceActiveTab)) {
+        targetPane.activeTabId = sourceActiveTab;
+    } else if (!targetPane.activeTabId && targetPane.tabs.length > 0) {
         targetPane.activeTabId = targetPane.tabs[0];
     }
 
-    // Clear source pane
-    sourcePane.tabs = [];
-    sourcePane.activeTabId = null;
+    // Shift any panes to the right of sourceIdx to the left
+    for (let j = sourceIdx; j < openPaneCount - 1; j++) {
+        panes[j].tabs = [...panes[j + 1].tabs];
+        panes[j].activeTabId = panes[j + 1].activeTabId;
+    }
+
+    // Clear the trailing pane slot
+    panes[openPaneCount - 1].tabs = [];
+    panes[openPaneCount - 1].activeTabId = null;
 
     openPaneCount--;
+    activePaneIndex = targetIdx;
+
     updatePanesLayout();
 
     for (let p = 0; p < openPaneCount; p++) {
@@ -2071,6 +2122,10 @@ function updateCellHighlights(paneIdx = activePaneIndex) {
             }
         }
     });
+
+    if (isTocOpen && paneIdx === activePaneIndex) {
+        renderToc();
+    }
 }
 
 // Set Doc Global Mode
@@ -3218,14 +3273,17 @@ function clearSelection(paneIdx = activePaneIndex) {
     const doc = getPaneActiveDocument(paneIdx);
     if (!doc) return;
 
-    if (doc.activeIndex !== -1) {
-        doc.selectedIndices = [doc.activeIndex];
-        doc.selectionAnchorIndex = doc.activeIndex;
+    const anchorIdx = (doc.selectionAnchorIndex !== -1 && doc.selectionAnchorIndex < doc.cells.length)
+        ? doc.selectionAnchorIndex
+        : doc.activeIndex;
+
+    if (anchorIdx !== -1) {
+        selectCell(anchorIdx, false, paneIdx);
     } else {
         doc.selectedIndices = [];
         doc.selectionAnchorIndex = -1;
+        updateCellHighlights(paneIdx);
     }
-    updateCellHighlights(paneIdx);
 }
 
 // Undo & Redo System
@@ -5391,6 +5449,8 @@ function updateDocumentFilename(oldBaseName, newBaseName, oldRel = '', newRel = 
         const pDoc = getPaneActiveDocument(p);
         if (pDoc) {
             panes[p].nameInputEl.value = pDoc.filename;
+            panes[p].nameInputEl.defaultValue = pDoc.filename;
+            panes[p].nameInputEl.dataset.isEditing = 'false';
         }
     }
 }
@@ -5886,6 +5946,9 @@ function setupEventListeners() {
     });
 
     btnToggleSidebar.addEventListener('click', toggleFileBrowser);
+    if (btnToggleToc) btnToggleToc.addEventListener('click', () => toggleToc());
+    if (refreshTocBtn) refreshTocBtn.addEventListener('click', () => renderToc());
+    if (closeTocBtn) closeTocBtn.addEventListener('click', () => toggleToc(false));
 
     // Shortcuts modal
     menuShortcuts.addEventListener('click', (e) => {
@@ -6211,7 +6274,7 @@ function handleGlobalKeydown(e) {
         }
     }
 
-    // Ctrl + Alt + M : Merge rightmost pane into adjacent left pane
+    // Ctrl + Alt + M : Merge active pane into adjacent left pane
     if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key.toLowerCase() === 'm' || e.code === 'KeyM')) {
         e.preventDefault();
         mergeLastPane();
@@ -6219,9 +6282,24 @@ function handleGlobalKeydown(e) {
     }
 
     // Ctrl + Shift + F : Toggle File Browser Sidebar
-    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'f') {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && (e.key.toLowerCase() === 'f' || e.code === 'KeyF')) {
         e.preventDefault();
         toggleFileBrowser();
+        return;
+    }
+
+    // Ctrl + Alt + F : Toggle Table of Contents (ToC)
+    if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && (e.key.toLowerCase() === 'f' || e.code === 'KeyF')) {
+        e.preventDefault();
+        toggleToc();
+        return;
+    }
+
+    // Ctrl + Shift + Q : Quit Application
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && (e.key.toLowerCase() === 'q' || e.code === 'KeyQ')) {
+        e.preventDefault();
+        e.stopPropagation();
+        executeQuit();
         return;
     }
 
@@ -6347,6 +6425,19 @@ function handleGlobalKeydown(e) {
 
     // 2. Command Mode Shortcuts
     if (doc.globalMode === 'command') {
+        // Escape: cancel multiple cell selection and restore anchor cell single selection
+        if (e.key === 'Escape' && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+            if (doc.selectedIndices && doc.selectedIndices.length > 1) {
+                e.preventDefault();
+                e.stopPropagation();
+                const anchorIdx = (doc.selectionAnchorIndex !== -1 && doc.selectionAnchorIndex < doc.cells.length)
+                    ? doc.selectionAnchorIndex
+                    : doc.activeIndex;
+                selectCell(anchorIdx, false);
+                return;
+            }
+        }
+
         // Move Cell (Ctrl + Shift + Up / Down)
         if (e.ctrlKey && e.shiftKey && (e.key === 'ArrowUp' || e.key === 'Up')) {
             e.preventDefault();
@@ -6376,15 +6467,52 @@ function handleGlobalKeydown(e) {
             clearTimeout(numberBufferTimeout);
         }
 
-        // Cell navigation (j / k / up / down arrows)
-        if ((e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J') && !e.ctrlKey && !e.altKey) {
+        // Cell navigation (Ctrl + up / down arrows, j / k)
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'ArrowDown' || e.key === 'Down')) {
+            e.preventDefault();
+            selectCell(doc.activeIndex + 1, false);
+            return;
+        }
+        else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'ArrowUp' || e.key === 'Up')) {
+            e.preventDefault();
+            selectCell(doc.activeIndex - 1, false);
+            return;
+        }
+        else if ((e.key === 'j' || e.key === 'J') && !e.ctrlKey && !e.altKey && !e.metaKey) {
             e.preventDefault();
             selectCell(doc.activeIndex + 1, e.shiftKey);
             return;
         }
-        else if ((e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K') && !e.ctrlKey && !e.altKey) {
+        else if ((e.key === 'k' || e.key === 'K') && !e.ctrlKey && !e.altKey && !e.metaKey) {
             e.preventDefault();
             selectCell(doc.activeIndex - 1, e.shiftKey);
+            return;
+        }
+        // Browser-style viewport scroll (ArrowDown / ArrowUp) - ページのコマ送り的上下
+        else if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && (e.key === 'ArrowDown' || e.key === 'Down')) {
+            const pane = panes[activePaneIndex];
+            if (pane && pane.cellsScrollEl) {
+                e.preventDefault();
+                pane.cellsScrollEl.scrollBy({ top: 50, behavior: 'auto' });
+                return;
+            }
+        }
+        else if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'Up')) {
+            const pane = panes[activePaneIndex];
+            if (pane && pane.cellsScrollEl) {
+                e.preventDefault();
+                pane.cellsScrollEl.scrollBy({ top: -50, behavior: 'auto' });
+                return;
+            }
+        }
+        else if (!e.ctrlKey && !e.altKey && !e.metaKey && e.shiftKey && (e.key === 'ArrowDown' || e.key === 'Down')) {
+            e.preventDefault();
+            selectCell(doc.activeIndex + 1, true);
+            return;
+        }
+        else if (!e.ctrlKey && !e.altKey && !e.metaKey && e.shiftKey && (e.key === 'ArrowUp' || e.key === 'Up')) {
+            e.preventDefault();
+            selectCell(doc.activeIndex - 1, true);
             return;
         }
         else if (e.key === 'g' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
@@ -6480,14 +6608,22 @@ function handleGlobalKeydown(e) {
             return;
         }
 
-        // Undo / Redo
-        if (e.key.toLowerCase() === 'z' && !e.ctrlKey && !e.altKey) {
+        // Undo / Redo (Command Mode: z or Ctrl + z; Redo: Shift + z, Ctrl + Shift + z, Ctrl + y)
+        if ((e.key.toLowerCase() === 'z' || e.code === 'KeyZ') && !e.altKey) {
             e.preventDefault();
+            e.stopPropagation();
             if (e.shiftKey) {
                 redoCellOperation();
             } else {
                 undoCellOperation();
             }
+            return;
+        }
+
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key.toLowerCase() === 'y' || e.code === 'KeyY')) {
+            e.preventDefault();
+            e.stopPropagation();
+            redoCellOperation();
             return;
         }
 
@@ -6507,6 +6643,18 @@ function handleGlobalKeydown(e) {
     }
 }
 
+// Update Overall Sidebar Visibility (when both File Browser and ToC are hidden, collapse sidebar)
+function updateSidebarVisibility() {
+    const isFileBrowserVisible = fileBrowser && !fileBrowser.classList.contains('hidden');
+    if (sidebarContainer) {
+        if (!isFileBrowserVisible && !isTocOpen) {
+            sidebarContainer.classList.add('hidden');
+        } else {
+            sidebarContainer.classList.remove('hidden');
+        }
+    }
+}
+
 // Toggle File Browser
 function toggleFileBrowser() {
     if (fileBrowser) {
@@ -6518,6 +6666,160 @@ function toggleFileBrowser() {
             btnToggleSidebar.classList.add('bg-gray-200', 'text-jupyter-blue');
             btnToggleSidebar.classList.remove('text-gray-500');
         }
+        updateSidebarVisibility();
+    }
+}
+
+// Toggle Table of Contents (ToC)
+function toggleToc(forceState) {
+    if (typeof forceState === 'boolean') {
+        isTocOpen = forceState;
+    } else {
+        isTocOpen = !isTocOpen;
+    }
+
+    if (tocPanel) {
+        if (isTocOpen) {
+            tocPanel.classList.remove('hidden');
+        } else {
+            tocPanel.classList.add('hidden');
+        }
+    }
+
+    if (btnToggleToc) {
+        if (isTocOpen) {
+            btnToggleToc.classList.add('bg-gray-200', 'text-jupyter-blue');
+            btnToggleToc.classList.remove('text-gray-500');
+        } else {
+            btnToggleToc.classList.remove('bg-gray-200', 'text-jupyter-blue');
+            btnToggleToc.classList.add('text-gray-500');
+        }
+    }
+
+    updateSidebarVisibility();
+
+    if (isTocOpen) {
+        renderToc();
+    }
+}
+
+// Extract Headings (h1, h2, h3) from Document Cells
+// Rules:
+// 1. Matches lines starting with 1 to 3 '#' (h1, h2, h3)
+// 2. Ignores lines inside fenced code blocks
+// 3. At most one heading entry per cell (the first heading encountered in that cell)
+function extractHeadings(doc) {
+    if (!doc || !doc.cells || doc.cells.length === 0) return [];
+
+    const headings = [];
+    doc.cells.forEach((cell, cellIndex) => {
+        const text = cell.content || '';
+        const lines = text.split('\n');
+        let inCodeBlock = false;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const trimmed = line.trim();
+
+            if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+                inCodeBlock = !inCodeBlock;
+                continue;
+            }
+
+            if (inCodeBlock) continue;
+
+            // Match CommonMark heading: 0-3 leading spaces, 1-3 '#', whitespace, heading text
+            const match = line.match(/^\s{0,3}(#{1,3})\s+(.*)$/);
+            if (match) {
+                const level = match[1].length; // 1 (h1), 2 (h2), 3 (h3)
+                let headingText = match[2].trim();
+                // Strip optional trailing hashes: e.g. "### Title ###"
+                headingText = headingText.replace(/\s+#+\s*$/, '').trim();
+
+                headings.push({
+                    cellIndex,
+                    level,
+                    text: headingText
+                });
+                // Rule: only the first heading in this cell is included!
+                break;
+            }
+        }
+    });
+
+    return headings;
+}
+
+// Render Table of Contents List
+function renderToc() {
+    if (!tocList) return;
+
+    const doc = getActiveDocument();
+    if (!doc || !doc.cells || doc.cells.length === 0) {
+        tocList.innerHTML = '<div class="text-gray-400 text-center py-4 text-xs">No Active Notebook</div>';
+        return;
+    }
+
+    const headings = extractHeadings(doc);
+    if (headings.length === 0) {
+        tocList.innerHTML = '<div class="text-gray-400 text-center py-4 text-xs">No Headings</div>';
+        return;
+    }
+
+    // Determine active heading: the closest heading whose cellIndex <= doc.activeIndex
+    let activeHeadingCellIndex = -1;
+    for (let i = 0; i < headings.length; i++) {
+        if (headings[i].cellIndex <= doc.activeIndex) {
+            activeHeadingCellIndex = headings[i].cellIndex;
+        } else {
+            break;
+        }
+    }
+
+    let html = '';
+    headings.forEach((h) => {
+        const isActive = (h.cellIndex === activeHeadingCellIndex);
+        // Indentation: h1 -> 0px, h2 -> 16px, h3 -> 32px
+        const indentWidth = (h.level - 1) * 16;
+        const activeItemClass = isActive 
+            ? 'bg-blue-50/80 text-jupyter-blue font-semibold shadow-xs' 
+            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900';
+        const activeBarClass = isActive 
+            ? 'bg-jupyter-blue' 
+            : 'bg-transparent';
+        const cellNumClass = isActive
+            ? 'text-jupyter-blue font-bold font-mono'
+            : 'text-gray-400 font-mono';
+
+        html += `
+            <div class="toc-item flex items-center py-1.5 px-2 rounded cursor-pointer transition-colors text-xs select-none group ${activeItemClass}" data-cell-index="${h.cellIndex}" ${isActive ? 'data-active="true"' : ''} title="[${h.cellIndex + 1}] ${escapeHtml(h.text)}">
+                <div style="width: ${indentWidth}px;" class="flex-shrink-0"></div>
+                <span class="text-[11px] mr-1.5 flex-shrink-0 select-none ${cellNumClass}">[${h.cellIndex + 1}]</span>
+                <span class="w-1 h-3.5 mr-1.5 rounded-full flex-shrink-0 transition-colors ${activeBarClass}"></span>
+                <span class="truncate flex-1">${escapeHtml(h.text || '(Untitled Heading)')}</span>
+            </div>
+        `;
+    });
+
+    tocList.innerHTML = html;
+
+    // Attach click listeners to each ToC item: select cell and recenter top (Ctrl+Alt+L equivalent)
+    tocList.querySelectorAll('.toc-item').forEach(el => {
+        el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const cellIdx = parseInt(el.dataset.cellIndex, 10);
+            if (!isNaN(cellIdx)) {
+                selectCell(cellIdx, false, activePaneIndex);
+                recenterActiveCellTop(activePaneIndex);
+                renderToc();
+            }
+        });
+    });
+
+    // Auto-scroll ToC list if active item is outside its visible viewport
+    const activeItemEl = tocList.querySelector('.toc-item[data-active="true"]');
+    if (activeItemEl) {
+        activeItemEl.scrollIntoView({ block: 'nearest' });
     }
 }
 
@@ -6885,26 +7187,60 @@ function connectWebSocket() {
 }
 connectWebSocket();
 
-// Handle the explicit "Quit" button
+// Handle the explicit "Quit" button and shortcut
+async function executeQuit() {
+    if (confirm("Are you sure you want to quit the application?")) {
+        try {
+            await fetch('/api/shutdown', { method: 'POST' });
+            // Replace the entire body with a closed message
+            document.body.innerHTML = `
+                <div class="h-screen w-screen flex flex-col items-center justify-center bg-gray-900 text-white">
+                    <div class="text-4xl mb-4"><i class="fas fa-power-off"></i></div>
+                    <h1 class="text-2xl font-bold mb-2">Application Closed</h1>
+                    <p class="text-gray-400">The local server has been shut down successfully.</p>
+                    <p class="text-gray-400 mt-2">You can safely close this browser tab.</p>
+                </div>
+            `;
+        } catch (e) {
+            console.error("Error shutting down:", e);
+            alert("Failed to shut down the server. It might already be closed.");
+        }
+    }
+}
+
 const quitBtn = document.getElementById('quit-btn');
 if (quitBtn) {
-    quitBtn.addEventListener('click', async () => {
-        if (confirm("Are you sure you want to quit the application?")) {
-            try {
-                await fetch('/api/shutdown', { method: 'POST' });
-                // Replace the entire body with a closed message
-                document.body.innerHTML = `
-                    <div class="h-screen w-screen flex flex-col items-center justify-center bg-gray-900 text-white">
-                        <div class="text-4xl mb-4"><i class="fas fa-power-off"></i></div>
-                        <h1 class="text-2xl font-bold mb-2">Application Closed</h1>
-                        <p class="text-gray-400">The local server has been shut down successfully.</p>
-                        <p class="text-gray-400 mt-2">You can safely close this browser tab.</p>
-                    </div>
-                `;
-            } catch (e) {
-                console.error("Error shutting down:", e);
-                alert("Failed to shut down the server. It might already be closed.");
+    quitBtn.addEventListener('click', executeQuit);
+}
+
+// Global safeguard: Prevent browser undo/redo from mutating notebook-name-input when not actively editing it
+document.addEventListener('beforeinput', (e) => {
+    if (e.inputType === 'historyUndo' || e.inputType === 'historyRedo') {
+        const target = e.target;
+        if (target && target.classList && target.classList.contains('notebook-name-input')) {
+            if (target.dataset.isEditing !== 'true' || document.activeElement !== target) {
+                e.preventDefault();
+                e.stopPropagation();
             }
         }
-    });
-}
+    }
+}, true);
+
+document.addEventListener('input', (e) => {
+    const target = e.target;
+    if (target && target.classList && target.classList.contains('notebook-name-input')) {
+        if (target.dataset.isEditing !== 'true' || document.activeElement !== target) {
+            for (let i = 0; i < openPaneCount; i++) {
+                if (panes[i].nameInputEl === target) {
+                    const doc = getPaneActiveDocument(i);
+                    if (doc && target.value !== doc.filename) {
+                        target.value = doc.filename;
+                        target.defaultValue = doc.filename;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+}, true);
+

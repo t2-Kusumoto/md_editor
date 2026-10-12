@@ -514,6 +514,19 @@ async def copy_file_item(req: CopyRequest):
 
 active_connections = 0
 is_shutting_down = False
+server_instance = None
+
+def trigger_graceful_shutdown():
+    global is_shutting_down, server_instance
+    if not is_shutting_down:
+        is_shutting_down = True
+        if server_instance is not None:
+            server_instance.should_exit = True
+        else:
+            try:
+                os.kill(os.getpid(), signal.SIGINT)
+            except Exception:
+                pass
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -530,19 +543,17 @@ async def websocket_endpoint(websocket: WebSocket):
             # Wait a few seconds in case it's a page reload (F5)
             await asyncio.sleep(3)
             if active_connections == 0 and not is_shutting_down:
-                is_shutting_down = True
                 print("All UI clients disconnected. Shutting down server...")
-                os.kill(os.getpid(), signal.SIGINT)
+                trigger_graceful_shutdown()
 
 @app.post("/api/shutdown")
 async def shutdown_api():
     global is_shutting_down
     if not is_shutting_down:
-        is_shutting_down = True
         print("Quit button pressed. Shutting down server...")
         async def delayed_shutdown():
             await asyncio.sleep(0.5)
-            os.kill(os.getpid(), signal.SIGINT)
+            trigger_graceful_shutdown()
         asyncio.create_task(delayed_shutdown())
     return {"status": "shutting_down"}
 
@@ -566,6 +577,7 @@ def is_server_running(port: int) -> bool:
     return False
 
 def start():
+    global server_instance
     port = 18000
     if is_server_running(port):
         print(f"Server is already running on port {port}. Opening browser to restore session...")
@@ -574,8 +586,10 @@ def start():
 
     print(f"Starting Markdown Editor & Viewer in: {BASE_DIR}")
     print(f"Point your browser to http://127.0.0.1:{port}")
+    config = uvicorn.Config(app, host="127.0.0.1", port=port, reload=False)
+    server_instance = uvicorn.Server(config)
     try:
-        uvicorn.run(app, host="127.0.0.1", port=port, reload=False)
+        server_instance.run()
     except KeyboardInterrupt:
         pass
     except asyncio.CancelledError:

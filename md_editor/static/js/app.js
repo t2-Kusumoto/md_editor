@@ -6643,63 +6643,81 @@ function handleGlobalKeydown(e) {
     }
 }
 
-// Update Overall Sidebar Visibility (when both File Browser and ToC are hidden, collapse sidebar)
-function updateSidebarVisibility() {
-    const isFileBrowserVisible = fileBrowser && !fileBrowser.classList.contains('hidden');
-    if (sidebarContainer) {
-        if (!isFileBrowserVisible && !isTocOpen) {
-            sidebarContainer.classList.add('hidden');
-        } else {
-            sidebarContainer.classList.remove('hidden');
+// Set Active Sidebar View ('file-browser', 'toc', or null / 'none')
+// Manages the 3 mutually exclusive states:
+// 1. Both hidden (sidebar collapsed)
+// 2. FILE BROWSER only
+// 3. TABLE OF CONTENTS only
+function setSidebarView(view) {
+    if (view === 'file-browser') {
+        if (sidebarContainer) sidebarContainer.classList.remove('hidden');
+        if (fileBrowser) fileBrowser.classList.remove('hidden');
+        if (btnToggleSidebar) {
+            btnToggleSidebar.classList.add('bg-gray-200', 'text-jupyter-blue');
+            btnToggleSidebar.classList.remove('text-gray-500');
         }
+        if (tocPanel) tocPanel.classList.add('hidden');
+        if (btnToggleToc) {
+            btnToggleToc.classList.remove('bg-gray-200', 'text-jupyter-blue');
+            btnToggleToc.classList.add('text-gray-500');
+        }
+        isTocOpen = false;
+    } else if (view === 'toc') {
+        if (sidebarContainer) sidebarContainer.classList.remove('hidden');
+        if (fileBrowser) fileBrowser.classList.add('hidden');
+        if (btnToggleSidebar) {
+            btnToggleSidebar.classList.remove('bg-gray-200', 'text-jupyter-blue');
+            btnToggleSidebar.classList.add('text-gray-500');
+        }
+        if (tocPanel) tocPanel.classList.remove('hidden');
+        if (btnToggleToc) {
+            btnToggleToc.classList.add('bg-gray-200', 'text-jupyter-blue');
+            btnToggleToc.classList.remove('text-gray-500');
+        }
+        isTocOpen = true;
+        renderToc();
+    } else {
+        // Both hidden
+        if (sidebarContainer) sidebarContainer.classList.add('hidden');
+        if (fileBrowser) fileBrowser.classList.add('hidden');
+        if (btnToggleSidebar) {
+            btnToggleSidebar.classList.remove('bg-gray-200', 'text-jupyter-blue');
+            btnToggleSidebar.classList.add('text-gray-500');
+        }
+        if (tocPanel) tocPanel.classList.add('hidden');
+        if (btnToggleToc) {
+            btnToggleToc.classList.remove('bg-gray-200', 'text-jupyter-blue');
+            btnToggleToc.classList.add('text-gray-500');
+        }
+        isTocOpen = false;
     }
 }
 
 // Toggle File Browser
-function toggleFileBrowser() {
-    if (fileBrowser) {
-        fileBrowser.classList.toggle('hidden');
-        if (fileBrowser.classList.contains('hidden')) {
-            btnToggleSidebar.classList.remove('bg-gray-200', 'text-jupyter-blue');
-            btnToggleSidebar.classList.add('text-gray-500');
-        } else {
-            btnToggleSidebar.classList.add('bg-gray-200', 'text-jupyter-blue');
-            btnToggleSidebar.classList.remove('text-gray-500');
+function toggleFileBrowser(forceState) {
+    const isFileBrowserActive = fileBrowser && !fileBrowser.classList.contains('hidden') && sidebarContainer && !sidebarContainer.classList.contains('hidden');
+    if (typeof forceState === 'boolean') {
+        if (forceState) {
+            setSidebarView('file-browser');
+        } else if (isFileBrowserActive) {
+            setSidebarView(null);
         }
-        updateSidebarVisibility();
+    } else {
+        setSidebarView(isFileBrowserActive ? null : 'file-browser');
     }
 }
 
 // Toggle Table of Contents (ToC)
 function toggleToc(forceState) {
+    const isTocActive = isTocOpen && sidebarContainer && !sidebarContainer.classList.contains('hidden');
     if (typeof forceState === 'boolean') {
-        isTocOpen = forceState;
+        if (forceState) {
+            setSidebarView('toc');
+        } else if (isTocActive) {
+            setSidebarView(null);
+        }
     } else {
-        isTocOpen = !isTocOpen;
-    }
-
-    if (tocPanel) {
-        if (isTocOpen) {
-            tocPanel.classList.remove('hidden');
-        } else {
-            tocPanel.classList.add('hidden');
-        }
-    }
-
-    if (btnToggleToc) {
-        if (isTocOpen) {
-            btnToggleToc.classList.add('bg-gray-200', 'text-jupyter-blue');
-            btnToggleToc.classList.remove('text-gray-500');
-        } else {
-            btnToggleToc.classList.remove('bg-gray-200', 'text-jupyter-blue');
-            btnToggleToc.classList.add('text-gray-500');
-        }
-    }
-
-    updateSidebarVisibility();
-
-    if (isTocOpen) {
-        renderToc();
+        setSidebarView(isTocActive ? null : 'toc');
     }
 }
 

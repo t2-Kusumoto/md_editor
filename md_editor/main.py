@@ -20,6 +20,7 @@ import shutil
 
 # Record the directory from which the application was started
 BASE_DIR = os.getcwd()
+CURRENT_PORT = 18000
 
 def safe_join_path(base: str, *paths: str) -> str:
     """Safely join paths ensuring the target is within the base directory."""
@@ -34,7 +35,7 @@ async def lifespan(app: FastAPI):
     # Automatically open the web browser when the server starts
     def open_browser():
         time.sleep(1.0)  # Wait briefly for the server to bind to the port
-        webbrowser.open("http://127.0.0.1:18000")
+        webbrowser.open(f"http://127.0.0.1:{CURRENT_PORT}")
     
     threading.Thread(target=open_browser, daemon=True).start()
     yield
@@ -559,34 +560,73 @@ async def shutdown_api():
 
 @app.get("/api/status")
 async def get_status():
-    return {"app": "md_editor", "status": "running"}
+    return {
+        "app": "md_editor",
+        "status": "running",
+        "cwd": os.path.realpath(BASE_DIR),
+        "port": CURRENT_PORT
+    }
 
+import socket
 import json
 import urllib.error
 
-def is_server_running(port: int) -> bool:
+def is_port_listening(port: int) -> bool:
+    """Quickly check if a port is currently open and listening."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.05)
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+def is_port_bindable(port: int) -> bool:
+    """Check if we can bind to 127.0.0.1 on this port."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("127.0.0.1", port))
+            return True
+        except OSError:
+            return False
+
+def get_server_info(port: int) -> dict | None:
     try:
         req = urllib.request.Request(f"http://127.0.0.1:{port}/api/status")
-        with urllib.request.urlopen(req, timeout=1.0) as response:
+        with urllib.request.urlopen(req, timeout=0.5) as response:
             if response.status == 200:
                 data = json.loads(response.read().decode('utf-8'))
                 if data.get("app") == "md_editor":
-                    return True
+                    return data
     except Exception:
         pass
-    return False
+    return None
 
 def start():
-    global server_instance
-    port = 18000
-    if is_server_running(port):
-        print(f"Server is already running on port {port}. Opening browser to restore session...")
-        webbrowser.open(f"http://127.0.0.1:{port}")
+    global server_instance, CURRENT_PORT
+    current_cwd = os.path.normcase(os.path.realpath(BASE_DIR))
+
+    # Phase 1: Thoroughly check across ALL ports (18000-18050) if an instance is already running for current_cwd
+    for port in range(18000, 18051):
+        if is_port_listening(port):
+            info = get_server_info(port)
+            if info:
+                server_cwd = os.path.normcase(info.get("cwd", ""))
+                if server_cwd and server_cwd == current_cwd:
+                    print(f"Session already running for this directory on port {port}.")
+                    return
+
+    # Phase 2: No instance is running for current_cwd. Find the first free, bindable port.
+    chosen_port = None
+    for port in range(18000, 18051):
+        if not is_port_listening(port) and is_port_bindable(port):
+            chosen_port = port
+            break
+
+    if chosen_port is None:
+        print("Error: Could not find an available port in range 18000-18050.")
         return
 
+    CURRENT_PORT = chosen_port
     print(f"Starting Markdown Editor & Viewer in: {BASE_DIR}")
-    print(f"Point your browser to http://127.0.0.1:{port}")
-    config = uvicorn.Config(app, host="127.0.0.1", port=port, reload=False)
+    print(f"Point your browser to http://127.0.0.1:{CURRENT_PORT}")
+    config = uvicorn.Config(app, host="127.0.0.1", port=CURRENT_PORT, reload=False)
     server_instance = uvicorn.Server(config)
     try:
         server_instance.run()

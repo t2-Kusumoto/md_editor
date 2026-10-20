@@ -9,8 +9,7 @@
     font-weight: 800;
     margin-top: 1em;
     margin-bottom: 0.5em;
-    border-b-width: 1px;
-    border-color: #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
     padding-bottom: 0.3em;
 }
 
@@ -19,8 +18,7 @@
     font-weight: 700;
     margin-top: 1em;
     margin-bottom: 0.5em;
-    border-b-width: 1px;
-    border-color: #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
     padding-bottom: 0.3em;
 }
 
@@ -382,7 +380,7 @@
 .cell-block-cursor {
     position: absolute;
     pointer-events: none;
-    z-index: 2;
+    z-index: 3;
     background-color: rgba(33, 150, 243, 0.45); /* distinct semi-transparent block cursor */
     border-radius: 1px;
     animation: block-cursor-blink 1s step-end infinite;
@@ -412,7 +410,7 @@
     overflow: hidden;
     user-select: none;
     color: transparent;
-    z-index: 1.5;
+    z-index: 2;
     box-sizing: border-box;
     padding: 0.5rem;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;

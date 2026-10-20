@@ -1,88 +1,146 @@
-# 開発再現ログ & プロンプト履歴
+# Reproduction Log & Prompt History
 
-本ドキュメントは、他の開発者が自身の Antigravity 環境で同じ「Jupyter風 Markdown エディタ＆ビューア (`md_editor`)」を再現して作成できるように、開発プロセスの流れと実際に使用したプロンプトを記録したログです。
+[日本語版ドキュメント (Japanese Reproduction Log)](reproduction_log_ja.md)
 
----
-
-## 1. プロンプト履歴と対話の流れ
-
-### ステップ 1: 要件定義と実現性の相談
-**【ユーザープロンプト】**
-> google antigravityで、以下の条件に則った、「markdown editor and viewer」を作りたい。
-> （Jupyter LabのようなセルベースのMarkdownエディタ、キーバインド互換、`md_editor` コマンドで起動、左側に.mdファイル一覧、右側にエディタ、エクスポート機能など）
-> まず、これは実現可能？ また配布時のライセンス的な問題は無いですか？
-
-**【AIの提案と技術選定】**
-- **実現性**: 完全に実現可能。
-- **ライセンス**: 
-  - PyQt等を使うとGPLライセンスになりソースコード開示義務が生じる。
-  - 回避策として、LGPLである `PySide6` を使うか、**FastAPIのローカルWebサーバー ＋ ブラウザ (HTML/JS/CSS)** という構成にする。
-  - 後者のWebサーバー構成（プランA）であれば、ライセンスはMIT/BSD等の極めて寛容なライセンスに抑えることができ、かつ配布パッケージサイズも非常に小さくなる。また、将来的な「タブ分割表示」を実装する際にも、Web上の既存の強力なレイアウトライブラリ（Lumino等）を利用できるため有利。
-- **再現性**: 他の人が再現する際に、Node.jsやWebパックなどのビルド手順を強いると再現のハードルが上がる。そのため、**フロントエンドはビルド不要（Vanilla JS ＋ CDNでライブラリ読み込み）** という構成を提案。
-
-### ステップ 2: アプローチの決定と追加質問
-**【ユーザープロンプト】**
-> 1. アプローチは、プランA で。
-> 2. pythonのバージョンや、cssフレームワークについては指定しません。最適なものをせんていしてください。
-> 更に追加で、後々`Briefcase (BeeWare)`を使って、クロスプラットホーム向けとしたいと考えます。可能でしょうか？
-
-**【AIの回答】**
-- `Briefcase` によるアプリ化は可能。Togaの `WebView` ウィジェットを用いて作成したFastAPIサーバーまたはローカルHTMLを読み込ませることで、ネイティブのデスクトップ・モバイルアプリにパッケージングできる。
+This document is a comprehensive technical log and chronological record of prompts, design decisions, challenges encountered, and architectural solutions for developing and reproducing the Jupyter-like Markdown Notebook Editor & Viewer (`md_editor`).
 
 ---
 
-## 2. アーキテクチャと設計の要点
+## 1. Development Phases & Prompt Trajectory
 
-開発したアプリケーションの各コンポーネントにおける重要な設計判断は以下の通りです。
+### Phase 1: Requirements Definition & Foundational Prototype
 
-### 1. 起動エントリポイントの作成 (`pyproject.toml`)
-`md_editor` というコマンドでどこからでも起動できるようにするため、`pyproject.toml` に `project.scripts` を定義しました。
-```toml
-[project.scripts]
-md_editor = "md_editor.main:start"
+#### Step 1: Requirements, Licensing & Viability
+- **Requirements**: Jupyter Lab-style cell-based Markdown editor, keyboard shortcut compatibility, `md_editor` command-line launch, left file browser, right split editor, export features.
+- **Licensing & Architecture Analysis**:
+  - Pure desktop GUI frameworks (like PyQt) introduce GPL licensing constraints.
+  - **Selected Architecture**: FastAPI backend + Browser-based Vanilla JS frontend (MIT license, lightweight distribution, clean separation).
+  - **Zero Build Step**: To maximize portability and ease of reproduction, no Node.js/npm build pipeline is used. Dependencies (Tailwind, KaTeX, Highlight.js, DOMPurify, Twemoji) are loaded via CDN or local assets.
+
+#### Step 2: Implementation of Initial Web Prototype
+- Built `md_editor/main.py` with FastAPI, `templates/index.html`, `static/js/app.js`, and `static/css/style.css`.
+- Registered CLI script entry point `md_editor = "md_editor.main:start"` in `pyproject.toml`.
+
+---
+
+### Phase 2: Jupyter Lab Interaction & Cell Editing
+
+#### Step 3: Resolving Cell Split Keybinding Conflict
+- Browser default `Ctrl + Shift + -` triggered browser zoom-out.
+- Changed shortcut to **`Ctrl + Alt + -`** and bound physical `e.code === 'Minus'` to ensure JIS/ANSI keyboard consistency. Added `Split Cell` to the Edit menu.
+
+#### Step 4: Scroll Bounce Mitigation & Recenter Line
+- **Issue**: Auto-resizing `<textarea>` (`autoResizeTextarea`) caused parent containers to jump scroll positions to the bottom during typing.
+- **Solution**: Implemented a scroll-lock mechanism capturing container `scrollTop` immediately before height reassignment.
+- Added **`Ctrl + Alt + L`** to center the active caret line smoothly in the editor viewport.
+
+#### Step 5: Smooth Viewport Management & Sidebar Toggle
+- Added active file browser toggle via `Ctrl + Shift + F` and activity bar icon.
+- Optimized multi-cell selection, Vim-style cell jumping (`[number] + G, G`), and cell deletion (`D, D`).
+
+---
+
+### Phase 3: Advanced Cell Features & Quality Improvements
+
+#### Step 6: Native Print PDF Export
+- Replaced fragile raster canvas splitting (`html2canvas`) with browser-native printing (`window.print()`) in a hidden iframe.
+- Applied `@page { size: A4 portrait; margin: 15mm; }` and CSS `break-inside: avoid` to eliminate orphan headers and split table rows.
+- Embedded vector Twemoji SVGs for crisp emoji rendering across Linux, Windows, and macOS print outputs.
+
+#### Step 7: Multi-Session Port Allocation & Graceful Shutdown
+- Implemented dynamic port discovery (scanning ports 18000–18050) to allow concurrent sessions in different working directories.
+- Attached WebSocket heartbeat endpoint (`/ws`). When all browser tabs are closed, the backend server initiates graceful shutdown automatically.
+
+---
+
+### Phase 4: Security Overhaul, Bug Fixes & Codebase Hardening
+
+Following an in-depth security and architecture audit based on AI evaluation reports (`gemini_say.md`, `grok_say.md`), a comprehensive hardening overhaul was conducted:
+
+#### 1. DOMPurify XSS Elimination
+- **Vulnerability**: Unsanitized Markdown output rendered via `marked.parse()` allowed `<script>` and `<img onerror="...">` execution from untrusted Markdown files, risking arbitrary local API invocation (`/api/delete`, `/api/save`).
+- **Mitigation**: Integrated DOMPurify (`purify.min.js`) into all rendering pipelines (`renderMarkdownWithMath()`, PDF export, HTML export), with explicit support for KaTeX MathML tags.
+
+#### 2. Attack Surface Reduction (Removal of Base64 Image Fetching)
+- **Vulnerability**: `/api/convert-images-base64` fetched external URLs synchronously, creating potential SSRF and memory exhaustion (DoS) risks.
+- **Mitigation**: Confirmed that PDF export prints via hidden iframes that load local `/api/raw/...` and external image URLs directly. Completely removed `/api/convert-images-base64` from both backend and frontend.
+
+#### 3. Blocking I/O & Event Loop Freezing Resolution
+- Converted synchronous filesystem endpoints in `main.py` (`get_files`, `create_file`, `create_folder`, `save_file`, `load_file`, `delete_item`, `rename_item`, `copy_file_item`) from `async def` to standard **`def`**, allowing FastAPI to execute them in background threadpools.
+
+#### 4. Cross-Platform Path Normalization (POSIX Standard)
+- Implemented `to_posix_relpath()` in `main.py` to ensure all relative paths returned to the frontend use forward slashes (`/`), preventing subfolder breakdown on Windows.
+
+#### 5. Code Block & LaTeX Math Parser Hardening
+- Quarantined code blocks (````...```` and ``...``) into placeholders prior to formula extraction, preventing environment variables (e.g. `$PATH`, `$HOME`) from misinterpreting as KaTeX expressions.
+- Protected `<!-- cell -->` tags inside fenced code blocks from unintended cell splitting.
+
+#### 6. Unsaved Changes Modal Bug Fix
+- Bound confirmation dialog actions explicitly to `pendingDoc` to prevent closing background tabs from mutating or saving active foreground documents.
+
+#### 7. Automated Test Suite
+- Created `tests/test_backend.py` and `tests/test_parser.py` using Python standard `unittest` to ensure zero regression in path traversal security, encoding fallback, and code-block preservation.
+
+---
+
+## 2. Directory Structure
+
+```text
+md_edit_and_view_app/
+├── md_editor/
+│   ├── __init__.py
+│   ├── main.py            # FastAPI backend (REST API, POSIX paths, threadpooled I/O, WebSocket heartbeat)
+│   ├── templates/
+│   │   └── index.html     # HTML structure with CDN script imports (DOMPurify, KaTeX, Twemoji, Marked, HLJS)
+│   └── static/
+│       ├── css/
+│       │   └── style.css  # Restored markdown elements, cursor highlights, print page-break rules
+│       └── js/
+│           └── app.js     # Single Vanilla JS file with structured TOC sections (~7300 lines)
+├── tests/
+│   ├── __init__.py
+│   ├── test_backend.py    # Unit tests for security, traversal prevention, and API CRUD
+│   └── test_parser.py     # Parser tests for code-block isolation and safe cell splitting
+├── pyproject.toml         # Packaging configuration and entry points
+├── build.py               # PyInstaller standalone build configuration
+├── README.md              # English documentation
+├── README_ja.md           # Japanese documentation
+├── AGENTS.md              # English agent guidelines
+├── AGENTS_ja.md           # Japanese agent guidelines
+├── reproduction_log.md    # English development log
+└── reproduction_log_ja.md # Japanese development log
 ```
-ユーザーは `pip install -e .` を実行するだけで、ターミナルから `md_editor` で起動できるようになります。
-
-### 2. バックエンドの起動とブラウザ連動 (`md_editor/main.py`)
-FastAPIサーバー起動時に自動でブラウザを開くため、FastAPIの `lifespan` イベントで別スレッドを立ち上げ、1秒後に `webbrowser.open` を実行するロジックを採用しました。
-また、セキュリティ対策として、ファイルをロード・保存する際にベースディレクトリ（アプリ起動時のカレントディレクトリ）の外部にアクセスできないよう、`os.path.realpath` を用いたディレクトリトラバーサル防止チェックを実装しています。
-
-### 3. セルの分割保存と復元 (`md_editor/static/js/app.js`)
-通常のMarkdownには「セル」という概念がありません。そこで、本アプリでは保存・エクスポート時に、各セルの内容を特別なコメントタグ `<!-- cell -->` で結合して1つのファイルにエクスポートするようにしました。
-```markdown
-# セル1の内容
-$$ x^2 + y^2 = z^2 $$
-
-<!-- cell -->
-
-# セル2の内容
-- リスト項目
-```
-このファイルを読み込む際は、`content.split('<!-- cell -->')` で分割してセルを復元します。このタグが含まれない通常のMarkdownファイルをインポートした場合は、全体を1つのセルとしてフォールバック読み込みするため、既存のMarkdownファイルとの互換性も維持されます。
-
-### 4. Markdown と LaTeX 数式の競合回避
-Markdownパーサー（Marked.js）は、数式内の `*` や `_` といった記号を斜体や太字などのMarkdown記法として誤認識してパースしてしまう問題があります。
-これを防ぐため、以下の手順でレンダリングを行います：
-1. レンダリング前に、正規表現で `$$...$$` (ブロック数式) と `$...$` (インライン数式) を検出し、`___MATH_BLOCK_PH_0___` のようなユニークなプレースホルダー文字列に置換して退避させる。
-2. 残ったテキストを `marked.parse` に通してHTML化する。
-3. HTML化された文字列内のプレースホルダーを、`katex.renderToString` で数式としてレンダリングしたHTMLコードに再置換する。
 
 ---
 
-## 3. 再現・構築のステップ
+## 3. Step-by-Step Reproduction Guide
 
-同じものをゼロから作成する場合の手順です。
+To recreate this application from scratch:
 
-1. **仮想環境を作成し、依存関係を定義する**
-   - `python3 -m venv md_project` を作成。
-   - `pyproject.toml` に `fastapi`, `uvicorn`, `jinja2` を記述。
-   - `pip install -e .` でパッケージをインストール。
-2. **バックエンド (`md_editor/main.py`) を実装する**
-   - FastAPI アプリケーションを構築し、`/api/files`（ファイル一覧）、`/api/save`（保存）、`/api/load/{filename}`（ロード）のエンドポイントを実装。
-3. **フロントエンド HTML (`md_editor/templates/index.html`) を作成する**
-   - Tailwind CSS, Marked.js, KaTeX, Highlight.js, Font Awesome を CDN から読み込む。
-   - 左側にファイルブラウザ、右側にエディタとプレビューエリアを持つ Jupyter 風のレイアウトを定義。
-4. **JS ロジック (`md_editor/static/js/app.js`) を実装する**
-   - セル配列の状態管理、`keydown` イベントによる Jupyter ショートカットキーの検出、Markdown+KaTeXのパースロジック、保存・ロードの非同期通信を記述。
-5. **CSS (`md_editor/static/css/style.css`) を作成する**
-   - Tailwind CSS でリセットされてしまう Markdown 要素（h1-h4, 引用, リスト, テーブル）の標準スタイルを定義し、選択中のセルのボーダー色を設定。
+1. **Initialize Virtual Environment & Dependencies**:
+   - Create a Python virtual environment: `python3 -m venv .venv`
+   - Define `pyproject.toml` with `fastapi`, `uvicorn`, `jinja2`, `websockets`.
+   - Install in editable mode: `pip install -e .`
+
+2. **Implement Backend Server (`md_editor/main.py`)**:
+   - Implement `safe_join_path()` to reject traversal (`../`) and null bytes.
+   - Implement `to_posix_relpath()` for POSIX-normalized paths.
+   - Define file CRUD routes as synchronous `def` functions.
+   - Attach `/ws` endpoint for heartbeat auto-shutdown and port scanner (18000–18050).
+
+3. **Construct UI (`md_editor/templates/index.html`)**:
+   - Load Tailwind CSS, FontAwesome, KaTeX, DOMPurify, Marked.js, Highlight.js, Twemoji.
+   - Assemble sidebar file browser, ToC outline, menu bars, and multi-pane notebook containers.
+
+4. **Style Custom Elements (`md_editor/static/css/style.css`)**:
+   - Restore standard HTML element stylings (h1–h6, lists, tables, blockquotes).
+   - Configure `@media print` rules: A4 portrait, margins, and `page-break-inside: avoid`.
+
+5. **Write Core Logic (`md_editor/static/js/app.js`)**:
+   - Implement cell models and safe splitter `splitDocumentIntoCells()`.
+   - Implement `renderMarkdownWithMath()` with code block isolation and DOMPurify sanitization.
+   - Implement multi-pane tab manager and drag-and-drop mechanics.
+   - Implement keyboard navigation matching Jupyter Lab and Vim.
+
+6. **Validate with Automated Tests**:
+   - Run `python3 -m unittest discover tests` and verify 100% pass rate.

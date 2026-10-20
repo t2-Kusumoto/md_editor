@@ -15,6 +15,10 @@ def main():
         "--onefile",
         "--add-data", f"md_editor/static{sep}md_editor/static",
         "--add-data", f"md_editor/templates{sep}md_editor/templates",
+        "--hidden-import", "uvicorn.protocols.websockets.auto",
+        "--hidden-import", "uvicorn.lifespan.on",
+        "--hidden-import", "websockets",
+        "--hidden-import", "jinja2",
         "-c", "md_editor/main.py"
     ]
     

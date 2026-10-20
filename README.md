@@ -1,160 +1,182 @@
-# Markdown Editor & Viewer (`md_editor`)
+# Markdown Notebook Editor & Viewer (`md_editor`)
 
-Jupyter Lab (Notebook) のように、セル単位で Markdown 記法で記述した内容を **編集 (Edit) ⇔ プレビュー (View)** を切り替えながら執筆できる、デスクトップ環境向けの軽量な Markdown エディタ＆ビューアです。
+[日本語版ドキュメント (Japanese README)](README_ja.md)
 
----
-
-## 主な機能
-
-- **Jupyter Lab ライクなセル操作**: セル単位で Markdown や LaTeX 数式（KaTeX）、コードハイライトをプレビューできます。
-- **キーボードショートカット**: Jupyter Lab と同様の操作体系（Command / Edit モードの切り替え、セルの追加・削除・選択など）。
-- **ファイルのインポート・エクスポート**: セルの分割情報を保持した状態で、1つの `.md` ファイルとして保存・ロードできます。
-- **軽量かつ簡単な再現性**: フロントエンドのビルド環境（Node.js, npm 等）が不要で、Python 環境のみで即座に動作します。
+A desktop-oriented, lightweight Markdown notebook editor & viewer inspired by Jupyter Lab. Write, view, and interact with Markdown cell-by-cell while seamlessly toggling between **Edit** and **Command (View)** modes.
 
 ---
 
-## セットアップ手順
+## Key Features
 
-本プロジェクトは Python の仮想環境を使用して開発されています。
+- **Jupyter Lab-like Cell Paradigm**: Edit and preview Markdown, LaTeX formulas (KaTeX), code blocks with syntax highlighting, and emojis cell-by-cell.
+- **Rich Keyboard Navigation**: Intuitive Command and Edit modes with full shortcut support (Vim-style navigation, cell split, insert, delete, and reorder).
+- **Multi-Pane Workspace**: Split the editor vertically up to 3 panes with drag-and-drop tab management.
+- **Security-First Architecture**: Built-in DOMPurify HTML sanitization prevents local XSS attacks from untrusted Markdown files. Directory traversal protections secure local file operations.
+- **Table of Contents (ToC) Sidebar**: Instant heading outline with smooth jump-to-section.
+- **Exporting Capabilities**: Export clean Markdown (without cell delimiters), standalone HTML, and browser-native PDF print.
+- **No Frontend Build Step Required**: Works purely with Python backend (FastAPI) and Vanilla JS + CDN/local assets. No Node.js or npm build step needed for end users.
 
-### 1. 仮想環境の準備とアクティベート
+---
+
+## Installation & Distribution
+
+This application supports multiple installation methods depending on your environment and preferences.
+
+### Option A: For Users with Python Installed
+
+#### 1. For Developers / Customization
+Run in editable mode to develop and customize the source code directly:
+
 ```bash
-# 仮想環境を作成 (すでに作成済みの場合は不要)
-python3 -m venv md_project
+# 1. Clone repository and navigate
+git clone https://github.com/user/md_editor.git
+cd md_edit_and_view_app
 
-# 仮想環境を有効化 (Linux/macOS)
-source md_project/bin/activate
-```
+# 2. Create and activate a virtual environment
+# macOS / Linux
+python3 -m venv .venv
+source .venv/bin/activate
 
-### 2. パッケージのインストール
-プロジェクトのルートディレクトリで以下のコマンドを実行し、アプリをインストールします。
-これにより依存パッケージ（FastAPI, uvicorn 等）がインストールされ、`md_editor` コマンドが登録されます。
-```bash
+# Windows (PowerShell)
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+
+# 3. Install in editable mode
 pip install -e .
+
+# 4. Launch the application
+md_editor
+# Any changes to Python or JS files will reflect immediately without reinstalling!
+```
+
+#### 2. For Daily CLI Usage (Global command without activating venv)
+
+**Using `pipx` or `uv`:**
+```bash
+# Using pipx
+pipx install git+https://github.com/user/md_editor.git
+# or from local clone:
+pipx install .
+
+# Using uv
+uv tool install git+https://github.com/user/md_editor.git
+# or from local clone:
+uv tool install .
+```
+
+**Using Standard Python (Without external tools):**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
+pip install .
+
+# macOS / Linux: Create a symlink to user bin
+ln -s "$(pwd)/.venv/bin/md_editor" ~/.local/bin/md_editor
+
+# Windows: Add .venv\Scripts to your user PATH or create a shortcut
 ```
 
 ---
 
-## 起動方法
+### Option B: Standalone Executable (For Systems without Python)
 
-ターミナルに以下を入力して実行します。
+Create a single standalone binary using PyInstaller:
+
+```bash
+python3 build.py
+```
+This builds an executable into the `dist/` directory (`dist/md-editor` on Linux/macOS or `dist/md-editor.exe` on Windows).
+Place this binary in any directory included in your system `PATH` and launch it directly from terminal:
+```bash
+md-editor
+```
+
+---
+
+## Quick Start & Usage
+
+Run the command in your desired workspace folder:
 ```bash
 md_editor
 ```
-コマンドを実行すると、自動的に Web ブラウザが起動し、`http://127.0.0.1:18000` でアプリケーションが開きます。
+Your default web browser will automatically open at `http://127.0.0.1:18000`.
 
 ---
 
-## ファイルブラウザ (File Browser) 機能
+## Operation & Shortcuts
 
-Jupyter Lab と同様の操作性を備えたファイルブラウザが左側に配置されています。
+The editor operates in two primary modes, identical to Jupyter Lab: **Edit mode** (editing cell contents) and **Command mode** (navigating and manipulating cells).
 
-- **フォルダ階層のナビゲーション**: フォルダをダブルクリックすることで下位フォルダに移動できます。フォルダ一覧はファイル一覧の上部に優先表示されます。
-- **パンくずリスト (Breadcrumbs)**: 上部の `[📁] /` エリアに現在の階層パスが表示され、ルートアイコンや上位フォルダ名をクリックすることで素早く上位階層に移動できます。
-- **New File 作成ボタン**: 青地に白抜きの長方形 `+` ボタンをクリックすると、現在開いているフォルダ内に即座に新規 Markdown ファイル（`untitled.md` 等）が作成され、エディタタブで開かれます。
-- **新規フォルダ作成**: `📁+` アイコンをクリックすると、デフォルト名 `new_folder` で新規フォルダが作成され、即座にインラインリネーム状態で名前を設定できます。
-- **右クリックメニュー (Rename / Delete)**: フォルダおよびファイルの上で右クリックすることで、その場でインラインリネームや削除（フォルダ配下のファイルを含めた削除）が可能です。
+### Global Shortcuts
+- **`Ctrl + Shift + F`**: Toggle File Browser sidebar.
+- **`Ctrl + Alt + F`**: Toggle Table of Contents (ToC) sidebar.
+- **`Ctrl + \`**: Split active editor vertically (up to 3 panes).
+- **`Ctrl + S`**: Save current notebook.
+- **`Ctrl + Alt + S`**: Save notebook as a new file.
+- **`Ctrl + Alt + N`**: Create a new notebook.
+- **`Ctrl + Alt + W`**: Close current tab.
+- **`Ctrl + Shift + Q`**: Quit application and gracefully stop backend server.
 
+### Edit Mode (Typing inside a cell)
+- **`Esc`**: Switch to Command mode (preview rendered Markdown).
+- **`Ctrl + Enter`**: Render cell and stay on current cell in Command mode.
+- **`Shift + Enter`**: Render cell and select the cell below (creates a new cell if at the end).
+- **`Ctrl + /`**: Toggle comment (`<!-- ... -->`) for selected lines or current line.
+- **`Ctrl + Alt + -`**: Split current cell at selection.
+- **`Ctrl + Shift + K`**: Delete current line(s).
+- **`Ctrl + Shift + D`**: Duplicate current line(s) downward.
+- **`Ctrl + Shift + ↑ / ↓`**: Move line(s) up or down within cell.
+- **`Ctrl + B`**: Bold text (`**...**`).
+- **`Ctrl + I`**: Italicize text (`*...*`).
+- **`Ctrl + Alt + L`**: Recenter current line in editor view.
 
-## 操作方法とキーバインド
-
-アプリは Jupyter Lab と同様に **Edit モード (編集)** と **Command モード (セル選択)** の2つの状態を持っています。
-
-### グローバル操作 (常時利用可能)
-- **`Ctrl + Shift + F`**: 左側のファイルブラウザ（サイドバー）の表示・非表示をトグルします。左端のフォルダアイコンをクリックすることでも同様に切り替え可能です。
-
-### Edit モード (セルに入力中)
-- **`Esc`**: Command モードへ移行（プレビュー表示、フォーカスを外す）
-- **`Ctrl + Enter`**: セルを実行（プレビュー）し、Command モードへ移行（同一セルを選択したまま）
-- **`Shift + Enter`**: セルを実行（プレビュー）し、下のセルを選択（無い場合は自動的に新しいセルを作成）
-- **`Ctrl + /`**: 選択した範囲または現在カーソルのある行をコメントアウトトグルします (`<!--  -->` 形式)
-- **`Ctrl + Alt + -`**: セル内の選択範囲に基づき、セルを2分割または3分割します (Split Cell)
-- **`Ctrl + Shift + K`**: 現在カーソルのある行を削除します（複数行選択時は選択された行すべてを一括削除）
-- **`Ctrl + Shift + D`**: 現在カーソルのある行（または選択中の複数行）を下へ複製します
-- **`Ctrl + Shift + ↑ / ↓` (矢印キー)**: 選択行または現在カーソルのある行を上下の行と入れ替えて移動します（同一セル内での移動に留まります）
-- **`Ctrl + B`**: 選択した文字列を太字（強調表示 `**...**`）にします
-- **`Ctrl + I`**: 選択した文字列を斜体（イタリック `*...*`）にします
-- **`Ctrl + Alt + L`**: 現在カーソルのある行を、pane-header下線から12行下の位置にスクロール移動させます (Recenter Line)
-
-### Command モード (セルを選択中)
-- **`Enter`**: 選択中のセルを編集する（Edit モードへ移行）
-- **`J`** または **`Ctrl + ↓` (矢印キー)**: 下のセルを選択
-- **`K`** または **`Ctrl + ↑` (矢印キー)**: 上のセルを選択
-- **`↑ / ↓` (矢印キー)**: ページをコマ送りスクロール（上下移動）
-- **`Ctrl + Shift + ↑ / ↓` (矢印キー)**: 選択中のセルを上下に移動（順序入れ替え）
-- **`A`**: 選択中のセルの **上** に新しいセルを追加
-- **`B`**: 選択中のセルの **下** に新しいセルを追加
-- **`D, D`** (Dを2回連続で押す): 選択中のセルを削除 (複数選択時は全て削除)
-- **`C`**: 選択中のセルをコピー
-- **`X`**: 選択中のセルをカット (切り取り)
-- **`V`**: コピー/カットしたセルを下に貼り付け
-- **`Shift + V`**: コピー/カットしたセルを上に貼り付け
-- **`Shift + ↑ / ↓` または `Shift + クリック`**: 複数のセルを選択
-- **`Esc`**: 複数セル選択を解除（起点セル単独選択へ戻す）
-- **`Shift + M`**: 複数選択されたセルを全て結合
-- **`Z`**: セル操作を Undo (元に戻す)
-- **`Shift + Z`**: セル操作を Redo (やり直す)
-- **`Ctrl + A`**: すべてのセルを選択
-- **`Ctrl + Alt + L`**: 選択中セルの上枠を、pane-header下線から2行下の位置にスクロール移動させます (Recenter Cell Top)
-- **`G, G`**: 先頭セルへ移動
-- **`[番号] + G, G`** (例: `5gg`): 指定した番号のセルを選択し、セルの上枠をpane-header下線から2行下の位置へスクロール移動 (Vim風ジャンプ)
-- **`Shift + G`**: 末尾セルへ移動
-- **`Shift + Enter`**: 選択中のセルを実行（プレビュー）
-- **`Ctrl + \`**: 画面を垂直（左右）に分割（最大3ペイン）
-
-### 共通ショートカット
-- **`Ctrl + Alt + N`**: 新規ノートブックを作成
-- **`Ctrl + Alt + W`**: 現在のタブを閉じる
-- **`Ctrl + Alt + M`**: 現在のペインを左隣へ統合 (マージ)
-- **`Ctrl + S`**: ファイルを上書き保存
-- **`Ctrl + Alt + S`**: 名前をつけてファイルを保存
-- **`Ctrl + \`**: 垂直分割 (Split Vertically, 最大3ペイン)
-- **`Ctrl + Shift + F`**: ファイルブラウザの表示/非表示
-- **`Ctrl + Alt + F`**: 目次 (Table of Contents) の表示/非表示
-- **`Ctrl + Shift + Q`**: アプリケーションを終了 (Quit)
-
-### コメントハイライト機能 (`TODO:` / `NOTE:`)
-HTMLコメント内に大文字かつコロン付きの `TODO:` または `NOTE:` が含まれている場合（例: `<!-- TODO: 実装予定 -->`、`<!-- NOTE: 注意事項 -->`）、以下のハイライト表示が自動的に行われます。
-- **Edit モード**: テキストエリア内の `TODO:` および `NOTE:` の文字列背景が黄色（`<mark>` タグ風）でハイライト表示されます。
-- **Command モード**: 該当コメントを含むセルのセル番号部分（`[番号]`）が、選択・非選択に関わらず視認性の高い黄色の角丸バッジで表示されます。
-- **スクロールバーインジケーター**: エディタ右側のスクロールバー上に、該当セルの位置が黄色の細い水平バー（Chromeの `Ctrl+F` 検索結果風）として表示されます。クリックすると該当セルへ瞬時にスクロール移動できます。
-- **ファイルExportへの完全保護**: ハイライトは画面表示（DOM）上でのみ処理され、セル本来のテキストデータ（Markdown）には一切影響を与えないため、ファイル保存や将来の Markdown / HTML / PDF Export 時にも完全に安全です。
+### Command Mode (Cell navigation)
+- **`Enter`**: Enter Edit mode for selected cell.
+- **`J`** or **`Ctrl + ↓`**: Select cell below.
+- **`K`** or **`Ctrl + ↑`**: Select cell above.
+- **`↑ / ↓`**: Smoothly scroll page up or down.
+- **`Ctrl + Shift + ↑ / ↓`**: Move selected cell(s) up or down.
+- **`A`**: Insert a new cell **above**.
+- **`B`**: Insert a new cell **below**.
+- **`D, D`** (press D twice): Delete selected cell(s).
+- **`C`**: Copy selected cell.
+- **`X`**: Cut selected cell.
+- **`V`**: Paste cell below.
+- **`Shift + V`**: Paste cell above.
+- **`Shift + ↑ / ↓`** or **`Shift + Click`**: Multi-select cells.
+- **`Esc`**: Clear multi-selection back to single cell.
+- **`Shift + M`**: Merge selected cells.
+- **`Z`**: Undo cell operations.
+- **`Shift + Z`**: Redo cell operations.
+- **`Ctrl + A`**: Select all cells.
+- **`G, G`**: Jump to first cell.
+- **`[Number] + G, G`** (e.g. `5gg`): Jump to specific cell number.
+- **`Shift + G`**: Jump to last cell.
 
 ---
 
-## 技術スタック
+## Technical Stack
 
-- **バックエンド**: Python (FastAPI, Uvicorn)
-- **フロントエンド**: HTML5, Vanilla JavaScript, Tailwind CSS (CDN)
-- **Markdown パーサー**: Marked.js
-- **数式レンダラー**: KaTeX (Jupyter互換の `$` または `$$` 記法をサポート)
-- **コードハイライト**: Highlight.js
+- **Backend**: Python (FastAPI, Uvicorn, Jinja2, WebSockets)
+- **Frontend**: HTML5, Vanilla JavaScript, Tailwind CSS
+- **Sanitizer**: DOMPurify (XSS prevention)
+- **Markdown Parser**: Marked.js
+- **LaTeX Math Renderer**: KaTeX (supports `$` and `$$` syntax)
+- **Syntax Highlighting**: Highlight.js
+- **Vector Emojis**: Twemoji
+
 ---
 
-## 配布とインストールについて (Distribution & Installation)
+## Running Automated Tests
 
-本アプリケーションは、開発環境だけでなく、他のディレクトリやPythonが入っていない他者のPCでも簡単に利用できるように2つの形式での配布をサポートしています。
+Run backend and parser tests using standard Python `unittest`:
 
-### 1. Pythonパッケージとしてのインストール (推奨)
-Python環境が構築されているPCであれば、ローカルのどこからでも起動できるCLIツールとしてインストール可能です。
+```bash
+python3 -m unittest discover tests
+```
 
-1. 本リポジトリ（フォルダ）内で以下のコマンドを実行します。
-   ```bash
-   pip install .
-   ```
-2. インストール完了後、任意のディレクトリでターミナルを開き、以下のコマンドを実行します。
-   ```bash
-   md_editor
-   ```
-   自動的にそのディレクトリを作業フォルダ（Workspace）としてローカルサーバーが立ち上がり、ブラウザが開いてエディタが利用できるようになります。
+---
 
-### 2. スタンドアロン実行ファイル化 (Python非搭載PC向け)
-Pythonがインストールされていない環境向けに、ダブルクリックで起動できる単一の実行ファイル（.exe や バイナリ）を作成することができます。
+## License
 
-1. 本リポジトリ内で以下のビルドスクリプトを実行します。
-   ```bash
-   python3 build.py
-   ```
-   ※ 内部で自動的に `PyInstaller` と必要な依存関係がインストールされ、ビルドが開始されます。
-2. ビルドが完了すると、`dist/` フォルダの中に `md-editor` （Windowsの場合は `md-editor.exe`）という名前の実行ファイルが生成されます。
-3. この実行ファイルを他者のPC等にコピーし、起動するだけでアプリが利用できます。
+MIT License

@@ -1,4 +1,27 @@
-// Global State & Document Management (Up to 3 Panes)
+/**
+ * ==============================================================================
+ * MARKDOWN NOTEBOOK EDITOR & VIEWER (app.js)
+ * ==============================================================================
+ * TABLE OF CONTENTS:
+ * 01. GLOBAL STATE & DOM ELEMENTS
+ * 02. DATA MODELS & CELL FACTORIES (Safe Split & ID Generation)
+ * 03. PANE & TAB MANAGEMENT (Up to 3 Panes, Drag-and-Drop)
+ * 04. SELECTION, UNDO/REDO & HISTORY STACK
+ * 05. CELL RENDERING & EDITING (DOMPurify, KaTeX, Twemoji, Highlight.js)
+ * 06. TEXTAREA EVENTS & BLOCK CURSOR / LINE HIGHLIGHT
+ * 07. PROMPT BAR (Replace & Go to Line)
+ * 08. KEYBOARD SHORTCUTS (Jupyter Lab & Vim Navigation)
+ * 09. SIDEBAR & FILE BROWSER (CRUD, Breadcrumbs, Drag Upload)
+ * 10. TABLE OF CONTENTS (ToC) SIDEBAR & SCROLL SYNC
+ * 11. EXPORT FUNCTIONS (Clean Markdown, HTML, Browser Native PDF Print)
+ * 12. UNSAVED CHANGES MODAL & APPLICATION SHUTDOWN
+ * 13. INITIALIZATION (DOM Ready & WebSocket Heartbeat)
+ * ==============================================================================
+ */
+
+// ==============================================================================
+// 01. GLOBAL STATE & DOM ELEMENTS
+// ==============================================================================
 const documents = new Map(); // docId -> DocumentModel
 const MAX_PANES = 3;
 
@@ -15,12 +38,12 @@ let clipboardCell = null; // Store copied/cut cell content and metadata
 const MAX_STACK_SIZE = 50;
 
 // Shortcut sequence tracking
-
 let isCtrlPressed = false;
 let dKeyTimeout = null;
 let gKeyTimeout = null;
 let numberBufferTimeout = null;
 let pendingAction = null; // For unsaved changes modal confirmation
+let pendingDoc = null; // Target document for unsaved changes confirmation
 let isSwitchingTabOrPane = false; // Guard to preserve edit mode across tab/pane switches
 
 // DOM Elements
@@ -350,6 +373,10 @@ function initPanes() {
     }
 }
 
+// ==============================================================================
+// 02. DATA MODELS & CELL FACTORIES
+// ==============================================================================
+
 // Generate unique ID for cells and documents
 function generateId() {
     return 'cell-' + Math.random().toString(36).substr(2, 9);
@@ -359,16 +386,48 @@ function generateDocId() {
     return 'doc-' + Math.random().toString(36).substr(2, 9);
 }
 
+/**
+ * Safely split markdown content into cells by `<!-- cell -->`.
+ * Protects occurrences of `<!-- cell -->` inside fenced code blocks (``` or ~~~).
+ */
+function splitDocumentIntoCells(content) {
+    if (!content || !content.includes('<!-- cell -->')) {
+        return content && content.trim().length > 0 ? [content] : [''];
+    }
+
+    const lines = content.replace(/\r\n/g, '\n').split('\n');
+    const cells = [];
+    let currentCellLines = [];
+    let inCodeFence = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmed = line.trim();
+
+        // Check for code block fences
+        if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+            inCodeFence = !inCodeFence;
+        }
+
+        // Only split if `<!-- cell -->` is outside any code block
+        if (!inCodeFence && trimmed === '<!-- cell -->') {
+            cells.push(currentCellLines.join('\n').trim());
+            currentCellLines = [];
+        } else {
+            currentCellLines.push(line);
+        }
+    }
+
+    if (currentCellLines.length > 0 || cells.length > 0) {
+        cells.push(currentCellLines.join('\n').trim());
+    }
+
+    return cells.length > 0 ? cells : [''];
+}
+
 // Create a new Document Model
 function createDocumentModel(filename = 'untitled', content = '', isNew = false, relPath = '', dirPath = '') {
-    let cellContents = [];
-    if (content && content.includes('<!-- cell -->')) {
-        cellContents = content.split('<!-- cell -->').map(c => c.trim());
-    } else if (content && content.trim().length > 0) {
-        cellContents = [content];
-    } else {
-        cellContents = [''];
-    }
+    const cellContents = splitDocumentIntoCells(content);
 
     const docId = generateDocId();
     const docCells = cellContents.map(c => ({
@@ -390,6 +449,7 @@ function createDocumentModel(filename = 'untitled', content = '', isNew = false,
         activeIndex: 0,
         globalMode: isNew ? 'edit' : 'command',
         isModified: isNew,
+        isNew: isNew,
         selectedIndices: [],
         selectionAnchorIndex: -1,
         undoStack: [],
@@ -1561,6 +1621,10 @@ function renderCells(paneIdx = activePaneIndex) {
                     }
                 });
             }
+
+            if (typeof applyTwemojiToElement === 'function') {
+                applyTwemojiToElement(previewEl);
+            }
             
             previewEl.addEventListener('dblclick', () => {
                 setActivePane(paneIdx);
@@ -1655,6 +1719,10 @@ function renderCellAt(index, paneIdx = activePaneIndex) {
                     console.error('Highlighting failed:', e);
                 }
             });
+        }
+
+        if (typeof applyTwemojiToElement === 'function') {
+            applyTwemojiToElement(previewEl);
         }
         
         previewEl.addEventListener('dblclick', () => {
@@ -1972,57 +2040,70 @@ function resolveImageSource(src, currentDirPath = '') {
     return `/api/raw/${encodeURI(normalized)}`;
 }
 
-// Render Markdown & LaTeX Math
+// Render Markdown & LaTeX Math with XSS Sanitization & Code Block Protection
 function renderMarkdownWithMath(text, currentDirPath = '') {
     if (!text) return '';
     text = text.replace(/\r\n/g, '\n');
 
-    const placeholders = [];
-    let placeholderCounter = 0;
+    // 1. Protect code blocks and inline code from formula / emoji substitution
+    const codePlaceholders = [];
+    text = text.replace(/(```[\s\S]*?```|`[^`\n]+`)/g, (match) => {
+        const id = `CODEBLOCKPH${codePlaceholders.length}END`;
+        codePlaceholders.push({ id, content: match });
+        return id;
+    });
 
+    // 2. Extract math formulas to placeholders
+    const mathPlaceholders = [];
     text = text.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
-        const ph = `MATHBLOCKPH${placeholderCounter}`;
-        placeholders.push({
-            id: ph,
-            formula: formula.trim(),
-            displayMode: true
-        });
-        placeholderCounter++;
-        return ph;
+        const id = `MATHBLOCKPH${mathPlaceholders.length}END`;
+        mathPlaceholders.push({ id, formula: formula.trim(), displayMode: true });
+        return id;
     });
-
     text = text.replace(/\$([^\$\n]+?)\$/g, (match, formula) => {
-        const ph = `MATHINLINEPH${placeholderCounter}`;
-        placeholders.push({
-            id: ph,
-            formula: formula.trim(),
-            displayMode: false
-        });
-        placeholderCounter++;
-        return ph;
+        const id = `MATHINLINEPH${mathPlaceholders.length}END`;
+        mathPlaceholders.push({ id, formula: formula.trim(), displayMode: false });
+        return id;
     });
 
+    // 3. Process emoji shortcodes
     text = replaceEmojiShortcodes(text);
+
+    // 4. Restore code blocks before marked parses markdown
+    codePlaceholders.forEach(cp => {
+        text = text.replace(cp.id, () => cp.content);
+    });
+
+    // 5. Parse Markdown
     let html = marked.parse(text);
 
-    placeholders.forEach(ph => {
+    // 6. Restore math formulas using KaTeX (use function replacement to avoid $ pattern interpretation)
+    mathPlaceholders.forEach(ph => {
         try {
             const mathHtml = katex.renderToString(ph.formula, {
                 displayMode: ph.displayMode,
                 throwOnError: false
             });
-            html = html.replace(ph.id, mathHtml);
+            html = html.replace(ph.id, () => mathHtml);
         } catch (e) {
             console.error("KaTeX render error:", e);
-            html = html.replace(ph.id, `<span class="text-red-500">LaTeX Error: ${ph.formula}</span>`);
+            html = html.replace(ph.id, () => `<span class="text-red-500">LaTeX Error: ${escapeHtml(ph.formula)}</span>`);
         }
     });
 
-    // If currentDirPath is not null, rewrite relative image sources to /api/raw/...
+    // 7. If currentDirPath is not null, rewrite relative image sources to /api/raw/...
     if (currentDirPath !== null) {
         html = html.replace(/<img\s+([^>]*?)src=["']([^"']+)["']([^>]*?)>/gi, (match, prefix, src, suffix) => {
             const newSrc = resolveImageSource(src, currentDirPath);
             return `<img ${prefix}src="${newSrc}"${suffix}>`;
+        });
+    }
+
+    // 8. Sanitize HTML via DOMPurify to prevent local XSS
+    if (typeof DOMPurify !== 'undefined') {
+        html = DOMPurify.sanitize(html, {
+            ADD_TAGS: ['annotation', 'math', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'mover', 'munder', 'munderover', 'mspace', 'msqrt', 'mtable', 'mtr', 'mtd'],
+            ADD_ATTR: ['target', 'aria-hidden']
         });
     }
 
@@ -4433,24 +4514,7 @@ async function exportHtml() {
     await saveExportedFile(blob, defaultFilename, 'text/html', 'html');
 }
 
-// Helper to replace inaccessible/broken images with placeholder box
-function replaceWithUnavailablePlaceholder(img) {
-    if (!img || !img.parentNode) return;
-    const placeholder = document.createElement('div');
-    placeholder.className = 'image-unavailable-placeholder';
-    placeholder.textContent = 'This image is unavailable.';
-    
-    const width = img.getAttribute('width') || (img.style && img.style.width);
-    const height = img.getAttribute('height') || (img.style && img.style.height);
-    if (width) {
-        placeholder.style.width = width.includes('px') || width.includes('%') ? width : `${width}px`;
-    }
-    if (height) {
-        placeholder.style.height = height.includes('px') || height.includes('%') ? height : `${height}px`;
-    }
-    
-    img.parentNode.replaceChild(placeholder, img);
-}
+
 
 // Build complete printable HTML document with embedded styling for browser native print
 function buildPrintableHtmlDocument(title, contentHtml) {
@@ -4695,45 +4759,7 @@ async function exportPdf() {
         });
     }
 
-    // 4. Resolve images to Base64 (to ensure local & external images are fully embedded)
-    const imgElements = Array.from(pdfContainer.querySelectorAll('img:not(.emoji)'));
-    const pathsToFetch = new Set();
-    imgElements.forEach(img => {
-        const src = img.getAttribute('src') || '';
-        if (src && !src.startsWith('data:')) {
-            pathsToFetch.add(src);
-        }
-    });
-
-    if (pathsToFetch.size > 0) {
-        try {
-            const res = await fetch('/api/convert-images-base64', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    paths: Array.from(pathsToFetch),
-                    current_dir: doc.dirPath || ''
-                })
-            });
-            if (res.ok) {
-                const data = await res.json();
-                const mapping = data.mapping || {};
-                imgElements.forEach(img => {
-                    const src = img.getAttribute('src');
-                    const converted = mapping[src];
-                    if (converted && converted.startsWith('data:')) {
-                        img.setAttribute('src', converted);
-                    } else if (converted === 'unavailable') {
-                        replaceWithUnavailablePlaceholder(img);
-                    }
-                });
-            }
-        } catch (err) {
-            console.warn('Failed to convert images for PDF:', err);
-        }
-    }
-
-    // 5. Apply Twemoji vector conversion for crisp, colorful emoji rendering in print PDF
+    // 4. Apply Twemoji vector conversion for crisp, colorful emoji rendering in print PDF
     applyTwemojiToElement(pdfContainer);
 
     const currentFilename = doc.filename || 'untitled.md';
@@ -5288,6 +5314,7 @@ function checkUnsavedChangesForDoc(doc, onConfirm) {
         return;
     }
     pendingAction = onConfirm;
+    pendingDoc = doc;
     document.getElementById('unsaved-notebook-name').textContent = doc.filename;
     document.getElementById('unsaved-modal').classList.remove('hidden');
 }
@@ -5963,26 +5990,29 @@ function setupEventListeners() {
     document.getElementById('unsaved-cancel-btn').addEventListener('click', () => {
         document.getElementById('unsaved-modal').classList.add('hidden');
         pendingAction = null;
+        pendingDoc = null;
     });
 
     document.getElementById('unsaved-dont-save-btn').addEventListener('click', () => {
         document.getElementById('unsaved-modal').classList.add('hidden');
         const action = pendingAction;
+        const targetDoc = pendingDoc || getActiveDocument();
         pendingAction = null;
+        pendingDoc = null;
         if (action) {
-            const doc = getActiveDocument();
-            if (doc) doc.isModified = false;
+            if (targetDoc) targetDoc.isModified = false;
             action();
         }
     });
 
     document.getElementById('unsaved-save-btn').addEventListener('click', async () => {
         document.getElementById('unsaved-modal').classList.add('hidden');
-        const doc = getActiveDocument();
-        const success = await saveNotebook(doc);
+        const targetDoc = pendingDoc || getActiveDocument();
+        const success = await saveNotebook(targetDoc);
         if (success) {
             const action = pendingAction;
             pendingAction = null;
+            pendingDoc = null;
             if (action) action();
         } else {
             document.getElementById('unsaved-modal').classList.remove('hidden');
@@ -7195,12 +7225,29 @@ function attachTextareaEvents(textarea, index, cell, paneIdx) {
 
 // --- Application Shutdown & WebSocket Disconnect Detection ---
 
+let isAppExplicitlyClosed = false;
+
 // Establish a WebSocket connection to let the server know this UI is active.
 // When all UIs disconnect (e.g. tabs closed), the server will shut down automatically.
 function connectWebSocket() {
-    const ws = new WebSocket(`ws://${location.host}/ws`);
+    if (isAppExplicitlyClosed) return;
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${location.host}/ws`);
+
+    ws.onopen = () => {
+        console.log("WebSocket connected to backend heartbeat");
+    };
+
     ws.onclose = () => {
         console.log("WebSocket disconnected");
+        if (!isAppExplicitlyClosed) {
+            // Attempt auto-reconnect after 1.5 seconds to prevent shutdown on sleep/brief network hiccup
+            setTimeout(connectWebSocket, 1500);
+        }
+    };
+
+    ws.onerror = (err) => {
+        console.warn("WebSocket error:", err);
     };
 }
 connectWebSocket();
@@ -7208,6 +7255,7 @@ connectWebSocket();
 // Handle the explicit "Quit" button and shortcut
 async function executeQuit() {
     if (confirm("Are you sure you want to quit the application?")) {
+        isAppExplicitlyClosed = true;
         try {
             await fetch('/api/shutdown', { method: 'POST' });
             // Replace the entire body with a closed message

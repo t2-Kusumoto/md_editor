@@ -27,6 +27,7 @@ Homepage = "https://github.com/user/md_editor"
 
 [project.scripts]
 md_editor = "md_editor.main:start"
+md-editor = "md_editor.main:start"
 
 [tool.setuptools.packages.find]
 where = ["."]

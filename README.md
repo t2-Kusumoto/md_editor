@@ -97,9 +97,16 @@ md-editor
 
 Run the command in your desired workspace folder:
 ```bash
+# Launch without arguments (opens workspace)
+md-editor
+# or
 md_editor
+
+# Launch and directly open a Markdown file
+md-editor document.md
 ```
-Your default web browser will automatically open at `http://127.0.0.1:18000`.
+Your default web browser will automatically open at `http://127.0.0.1:18000` (or the next available port).
+
 
 ---
 

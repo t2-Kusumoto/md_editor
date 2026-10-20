@@ -121,7 +121,18 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDividersResizer();
     updateModeBadge();
     updateStatus();
+
+    // Check if an initial file was specified via URL param or body data attribute
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialFile = urlParams.get('open') || document.body.dataset.initialFile;
+    if (initialFile) {
+        if (urlParams.has('open')) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        openFileByPath(initialFile);
+    }
 });
+
 
 // Initialize Panes and Cache DOM References
 function initPanes() {
@@ -3937,10 +3948,13 @@ function renderFileList(directories, files) {
     });
 }
 
-// Handle opening a file into tabs
-async function handleFileClick(filename) {
+// Open a file directly by its relative path (supports nested paths like 'sub/note.md')
+async function openFileByPath(fullRelPath) {
+    if (!fullRelPath) return null;
+    fullRelPath = fullRelPath.replace(/\\/g, '/').replace(/^\/+/, '');
+    const filename = fullRelPath.split('/').pop();
     const fileType = getFileType(filename);
-    const fullRelPath = currentBrowsePath ? `${currentBrowsePath}/${filename}` : filename;
+    const dirPath = fullRelPath.includes('/') ? fullRelPath.substring(0, fullRelPath.lastIndexOf('/')) : '';
 
     // 1. Markdown notebook
     if (fileType === 'notebook') {
@@ -3954,7 +3968,7 @@ async function handleFileClick(filename) {
                         showNotebookWorkspace();
                         setActivePane(i);
                         switchTab(i, docId);
-                        return;
+                        return doc;
                     }
                 }
             }
@@ -3964,26 +3978,28 @@ async function handleFileClick(filename) {
         try {
             const response = await fetch(`/api/load/${encodeURIComponent(fullRelPath).replace(/%2F/g, '/')}`);
             if (!response.ok) {
+                console.error('Failed to load file:', fullRelPath);
                 alert('Failed to load file');
-                return;
+                return null;
             }
             const data = await response.json();
 
-            const doc = createDocumentModel(data.filename, data.content, false, data.rel_path, currentBrowsePath);
+            const doc = createDocumentModel(data.filename, data.content, false, data.rel_path, dirPath);
             documents.set(doc.id, doc);
 
-            const targetPaneIdx = activePaneIndex;
+            const targetPaneIdx = activePaneIndex >= 0 ? activePaneIndex : 0;
             panes[targetPaneIdx].tabs.push(doc.id);
             panes[targetPaneIdx].activeTabId = doc.id;
 
             showNotebookWorkspace();
             setActivePane(targetPaneIdx);
             renderPane(targetPaneIdx);
+            return doc;
         } catch (err) {
             console.error('Error loading file:', err);
             alert('Error loading file: ' + err.message);
+            return null;
         }
-        return;
     }
 
     // 2. Previewable file types (image, pdf, text, video, audio)
@@ -3996,7 +4012,7 @@ async function handleFileClick(filename) {
                         showNotebookWorkspace();
                         setActivePane(i);
                         switchTab(i, docId);
-                        return;
+                        return doc;
                     }
                 }
             }
@@ -4011,25 +4027,38 @@ async function handleFileClick(filename) {
                     content = await res.text();
                 } else {
                     alert('Failed to load file content');
-                    return;
+                    return null;
                 }
             } catch (err) {
                 console.error('Error loading text file:', err);
                 alert('Error loading file: ' + err.message);
-                return;
+                return null;
             }
         }
 
-        const doc = createViewerDocumentModel(filename, fullRelPath, currentBrowsePath, fileType, content);
+        const doc = createViewerDocumentModel(filename, fullRelPath, dirPath, fileType, content);
         documents.set(doc.id, doc);
 
-        const targetPaneIdx = activePaneIndex;
+        const targetPaneIdx = activePaneIndex >= 0 ? activePaneIndex : 0;
         panes[targetPaneIdx].tabs.push(doc.id);
         panes[targetPaneIdx].activeTabId = doc.id;
 
         showNotebookWorkspace();
         setActivePane(targetPaneIdx);
         renderPane(targetPaneIdx);
+        return doc;
+    }
+
+    return null;
+}
+
+// Handle opening a file into tabs
+async function handleFileClick(filename) {
+    const fileType = getFileType(filename);
+    const fullRelPath = currentBrowsePath ? `${currentBrowsePath}/${filename}` : filename;
+
+    if (fileType === 'notebook' || ['image', 'pdf', 'text', 'video', 'audio'].includes(fileType)) {
+        await openFileByPath(fullRelPath);
         return;
     }
 
@@ -4045,6 +4074,7 @@ async function handleFileClick(filename) {
         document.body.removeChild(a);
     }
 }
+
 
 // Create New File button (JupyterLab style Option A: on-disk creation)
 async function handleNewFileBtn() {

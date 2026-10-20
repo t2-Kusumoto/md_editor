@@ -29,6 +29,7 @@ import uvicorn
 # Record the directory from which the application was started
 BASE_DIR = os.getcwd()
 CURRENT_PORT = 18000
+INITIAL_FILE = None
 
 
 # ==============================================================================
@@ -51,8 +52,10 @@ def safe_join_path(base: str, *paths: str) -> str:
     return target
 
 
-def to_posix_relpath(target_path: str, base_dir: str = BASE_DIR) -> str:
+def to_posix_relpath(target_path: str, base_dir: str | None = None) -> str:
     """Return relative path normalized to POSIX forward slashes regardless of host OS."""
+    if base_dir is None:
+        base_dir = BASE_DIR
     rel = os.path.relpath(target_path, base_dir)
     return rel.replace("\\", "/")
 
@@ -65,10 +68,17 @@ async def lifespan(app: FastAPI):
     # Automatically open the web browser when the server starts
     def open_browser():
         time.sleep(1.0)  # Wait briefly for the server to bind to the port
-        webbrowser.open(f"http://127.0.0.1:{CURRENT_PORT}")
+        url = f"http://127.0.0.1:{CURRENT_PORT}"
+        if INITIAL_FILE:
+            url += f"?open={urllib.parse.quote(INITIAL_FILE)}"
+        try:
+            webbrowser.open(url)
+        except Exception:
+            pass
 
     threading.Thread(target=open_browser, daemon=True).start()
     yield
+
 
 
 app = FastAPI(lifespan=lifespan)
@@ -135,7 +145,15 @@ class CopyRequest(BaseModel):
 # ==============================================================================
 @app.get("/", response_class=HTMLResponse)
 async def read_index(request: Request):
-    return templates.TemplateResponse(request, "index.html", {"cwd": BASE_DIR, "version": int(time.time())})
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "cwd": BASE_DIR,
+            "initial_file": INITIAL_FILE,
+            "version": int(time.time())
+        }
+    )
 
 
 @app.get("/api/files")
@@ -547,13 +565,67 @@ async def get_status():
         "app": "md_editor",
         "status": "running",
         "cwd": os.path.realpath(BASE_DIR),
-        "port": CURRENT_PORT
+        "port": CURRENT_PORT,
+        "initial_file": INITIAL_FILE
     }
 
 
 # ==============================================================================
 # 07. PORT SCANNING & APPLICATION START
 # ==============================================================================
+def parse_args_and_setup_workspace(argv: list[str]) -> tuple[str, str | None]:
+    """Parse CLI arguments, validate target file, and determine workspace directory.
+    Returns (base_dir, initial_file_relpath_or_none).
+    Exits with code 1 if validation fails.
+    """
+    args = argv[1:]
+    if len(args) > 1:
+        print("Error: Only one file can be specified at a time.", file=sys.stderr)
+        sys.exit(1)
+
+    if len(args) == 0:
+        return os.getcwd(), None
+
+    raw_path = args[0]
+
+    # Validate extension
+    _, ext = os.path.splitext(raw_path)
+    if ext.lower() != ".md":
+        print(f"Error: Target file must have a .md extension: '{raw_path}'", file=sys.stderr)
+        sys.exit(1)
+
+    target_abs = os.path.realpath(os.path.abspath(raw_path))
+
+    # Validate existence
+    if not os.path.exists(target_abs):
+        print(f"Error: File not found: '{raw_path}'", file=sys.stderr)
+        sys.exit(1)
+
+    # Validate is a regular file
+    if not os.path.isfile(target_abs):
+        print(f"Error: Specified path is a directory, not a file: '{raw_path}'", file=sys.stderr)
+        sys.exit(1)
+
+    # Determine workspace
+    current_cwd = os.path.realpath(os.getcwd())
+    try:
+        rel = os.path.relpath(target_abs, current_cwd)
+        if not rel.startswith("..") and not os.path.isabs(rel):
+            # Inside current_cwd
+            base_dir = current_cwd
+            initial_file = to_posix_relpath(target_abs, base_dir)
+        else:
+            # Outside current_cwd (e.g. OS 'Open with' or double-click with absolute path)
+            base_dir = os.path.dirname(target_abs)
+            initial_file = os.path.basename(target_abs)
+    except ValueError:
+        # Cross-drive paths on Windows (e.g. C: vs D:)
+        base_dir = os.path.dirname(target_abs)
+        initial_file = os.path.basename(target_abs)
+
+    return base_dir, initial_file
+
+
 def is_port_listening(port: int) -> bool:
     """Quickly check if a port is currently open and listening."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -585,7 +657,13 @@ def get_server_info(port: int) -> dict | None:
 
 
 def start():
-    global server_instance, CURRENT_PORT
+    global server_instance, CURRENT_PORT, BASE_DIR, INITIAL_FILE
+
+    base_dir, initial_file = parse_args_and_setup_workspace(sys.argv)
+    BASE_DIR = base_dir
+    INITIAL_FILE = initial_file
+    os.chdir(BASE_DIR)
+
     current_cwd = os.path.normcase(os.path.realpath(BASE_DIR))
 
     # Phase 1: Thoroughly check across ALL ports (18000-18050) if an instance is already running for current_cwd
@@ -596,10 +674,6 @@ def start():
                 server_cwd = os.path.normcase(info.get("cwd", ""))
                 if server_cwd and server_cwd == current_cwd:
                     print(f"Session already running for this directory on port {port}.")
-                    try:
-                        webbrowser.open(f"http://127.0.0.1:{port}")
-                    except Exception:
-                        pass
                     return
 
     # Phase 2: No instance is running for current_cwd. Find the first free, bindable port.
@@ -610,8 +684,8 @@ def start():
             break
 
     if chosen_port is None:
-        print("Error: Could not find an available port in range 18000-18050.")
-        return
+        print("Error: Could not find an available port in range 18000-18050.", file=sys.stderr)
+        sys.exit(1)
 
     CURRENT_PORT = chosen_port
     print(f"Starting Markdown Editor & Viewer in: {BASE_DIR}")
@@ -624,6 +698,7 @@ def start():
         pass
     except asyncio.CancelledError:
         pass
+
 
 
 if __name__ == "__main__":

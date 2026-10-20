@@ -1,16 +1,92 @@
 import os
+import shutil
 import subprocess
 import sys
 
+
+def run_pip_install(args: list[str]):
+    """Run pip install with automatic retry for PEP 668 (--break-system-packages)."""
+    base_cmd = [sys.executable, "-m", "pip", "install"]
+    try:
+        subprocess.check_call(base_cmd + args)
+    except subprocess.CalledProcessError:
+        # On Ubuntu 24.04+/26 (PEP 668), pip may require --break-system-packages if run outside venv
+        if "--break-system-packages" not in args:
+            try:
+                print("Retrying pip install with --break-system-packages...")
+                subprocess.check_call(base_cmd + ["--break-system-packages"] + args)
+                return
+            except subprocess.CalledProcessError:
+                pass
+        raise
+
+
+def is_online() -> bool:
+    """Check if PyPI is reachable without waiting for slow pip retries."""
+    import socket
+    try:
+        with socket.create_connection(("pypi.org", 443), timeout=1.5):
+            return True
+    except OSError:
+        return False
+
+
+def get_pyinstaller_command() -> list[str]:
+    """Find the best way to invoke PyInstaller (module invocation or binary)."""
+    # 1. Check if PyInstaller module is available in current python environment
+    try:
+        res = subprocess.run(
+            [sys.executable, "-m", "PyInstaller", "--version"],
+            capture_output=True,
+            text=True
+        )
+        if res.returncode == 0:
+            return [sys.executable, "-m", "PyInstaller"]
+    except Exception:
+        pass
+
+    # 2. Check if pyinstaller executable is in PATH
+    pyinstaller_bin = shutil.which("pyinstaller")
+    if pyinstaller_bin:
+        return [pyinstaller_bin]
+
+    raise RuntimeError("PyInstaller executable or module could not be found.")
+
+
 def main():
-    print("Installing PyInstaller and application dependencies...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-build-isolation", "."])
-    
-    sep = os.pathsep # ':' on Linux/Mac, ';' on Windows
-    
-    cmd = [
-        sys.executable,
-        "-m", "PyInstaller",
+    print("Checking dependencies for PyInstaller build...")
+
+    if is_online():
+        print("Network available: updating build tools and PyInstaller...")
+        # 1. Ensure build tools are present (especially important for Python 3.12+ / 3.14)
+        try:
+            run_pip_install(["--upgrade", "setuptools>=61.0.0", "wheel"])
+        except Exception as e:
+            print(f"Notice: setuptools/wheel install step: {e}")
+
+        # 2. Install or upgrade PyInstaller (PyInstaller >= 6.10.0 is required for Python 3.14 support)
+        try:
+            run_pip_install(["--upgrade", "pyinstaller>=6.10.0", "pyinstaller-hooks-contrib"])
+        except Exception:
+            run_pip_install(["--upgrade", "pyinstaller"])
+
+        # 3. Install project dependencies
+        try:
+            run_pip_install(["."])
+        except Exception:
+            run_pip_install(["--no-build-isolation", "."])
+    else:
+        print("Network unreachable or offline: using locally installed packages...")
+        try:
+            run_pip_install(["--no-build-isolation", "--no-deps", "."])
+        except Exception as e:
+            print(f"Notice: offline install step: {e}")
+
+
+    sep = os.pathsep  # ':' on Linux/Mac, ';' on Windows
+    pyinstaller_cmd = get_pyinstaller_command()
+
+    cmd = pyinstaller_cmd + [
         "--name", "md-editor",
         "--onefile",
         "--clean",
@@ -22,12 +98,13 @@ def main():
         "--hidden-import", "jinja2",
         "-c", "md_editor/main.py"
     ]
-    
+
     print(f"Running: {' '.join(cmd)}")
     subprocess.check_call(cmd)
 
-    
     print("Build complete. Executable is located in the dist/ directory.")
+
 
 if __name__ == "__main__":
     main()
+

@@ -17,7 +17,9 @@ import signal
 import threading
 import time
 import asyncio
+import multiprocessing
 from contextlib import asynccontextmanager
+
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, FileResponse
@@ -657,6 +659,7 @@ def get_server_info(port: int) -> dict | None:
 
 
 def start():
+    multiprocessing.freeze_support()
     global server_instance, CURRENT_PORT, BASE_DIR, INITIAL_FILE
 
     base_dir, initial_file = parse_args_and_setup_workspace(sys.argv)
@@ -702,4 +705,6 @@ def start():
 
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
     start()
+

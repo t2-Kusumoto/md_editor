@@ -42,8 +42,9 @@ class TestCLIArgsParsing(unittest.TestCase):
             f.write("# Meeting Notes")
 
         base_dir, initial_file = parse_args_and_setup_workspace(["md-editor", "notes/meeting.md"])
-        self.assertEqual(os.path.realpath(base_dir), os.path.realpath(self.test_dir))
-        self.assertEqual(initial_file, "notes/meeting.md")
+        self.assertEqual(os.path.realpath(base_dir), os.path.realpath(sub_dir))
+        self.assertEqual(initial_file, "meeting.md")
+
 
     def test_valid_file_outside_cwd_os_association(self):
         other_dir = tempfile.mkdtemp(prefix="md_other_dir_")
@@ -59,6 +60,21 @@ class TestCLIArgsParsing(unittest.TestCase):
         finally:
             if os.path.exists(other_dir):
                 shutil.rmtree(other_dir, ignore_errors=True)
+
+    def test_ubuntu_nautilus_double_click_from_home(self):
+        # In Ubuntu GNOME, double-clicking ~/Documents/work/report.md runs with CWD = ~
+        home_sim = self.test_dir
+        deep_folder = os.path.join(home_sim, "Documents", "work")
+        os.makedirs(deep_folder, exist_ok=True)
+        file_path = os.path.join(deep_folder, "report.md")
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write("# Report")
+
+        # Even though CWD is home_sim, base_dir must be deep_folder, NOT home_sim
+        base_dir, initial_file = parse_args_and_setup_workspace(["md-editor", file_path])
+        self.assertEqual(os.path.realpath(base_dir), os.path.realpath(deep_folder))
+        self.assertEqual(initial_file, "report.md")
+
 
     def test_case_insensitive_md_extension(self):
         target = os.path.join(self.test_dir, "UPPERCASE.MD")

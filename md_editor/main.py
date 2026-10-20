@@ -608,24 +608,12 @@ def parse_args_and_setup_workspace(argv: list[str]) -> tuple[str, str | None]:
         print(f"Error: Specified path is a directory, not a file: '{raw_path}'", file=sys.stderr)
         sys.exit(1)
 
-    # Determine workspace
-    current_cwd = os.path.realpath(os.getcwd())
-    try:
-        rel = os.path.relpath(target_abs, current_cwd)
-        if not rel.startswith("..") and not os.path.isabs(rel):
-            # Inside current_cwd
-            base_dir = current_cwd
-            initial_file = to_posix_relpath(target_abs, base_dir)
-        else:
-            # Outside current_cwd (e.g. OS 'Open with' or double-click with absolute path)
-            base_dir = os.path.dirname(target_abs)
-            initial_file = os.path.basename(target_abs)
-    except ValueError:
-        # Cross-drive paths on Windows (e.g. C: vs D:)
-        base_dir = os.path.dirname(target_abs)
-        initial_file = os.path.basename(target_abs)
+    # Always set workspace (base_dir) to the directory containing the file
+    base_dir = os.path.dirname(target_abs)
+    initial_file = os.path.basename(target_abs)
 
     return base_dir, initial_file
+
 
 
 def is_port_listening(port: int) -> bool:

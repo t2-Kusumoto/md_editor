@@ -27,6 +27,8 @@ sdist/
 var/
 wheels/
 *.egg-info/
+*.egg_info/
+UNKNOWN.egg*
 .installed.cfg
 *.egg
 
@@ -48,3 +50,6 @@ Thumbs.db
 build/
 dist/
 *.spec
+
+# Distribution repository clone
+md_editor_app/

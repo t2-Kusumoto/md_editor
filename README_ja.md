@@ -46,8 +46,8 @@ Jupyter Lab に着想を得た、デスクトップ環境向けの軽量な Mark
 
 ```bash
 # 1. リポジトリをクローンし、移動
-git clone https://github.com/user/md_editor.git
-cd md_edit_and_view_app
+git clone https://github.com/t2-Kusumoto/md_editor.git
+cd md_editor
 
 # 2. 仮想環境を作成し、有効化
 # macOS / Linux
@@ -71,12 +71,12 @@ md_editor
 **`pipx` または `uv` を使用する場合:**
 ```bash
 # pipx を利用する場合
-pipx install git+https://github.com/user/md_editor.git
+pipx install git+https://github.com/t2-Kusumoto/md_editor.git
 # またはローカルクローンから:
 pipx install .
 
 # uv を利用する場合
-uv tool install git+https://github.com/user/md_editor.git
+uv tool install git+https://github.com/t2-Kusumoto/md_editor.git
 # またはローカルクローンから:
 uv tool install .
 ```

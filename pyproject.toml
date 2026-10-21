@@ -23,7 +23,7 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/user/md_editor"
+Homepage = "https://github.com/t2-Kusumoto/md_editor"
 
 [project.scripts]
 md_editor = "md_editor.main:start"

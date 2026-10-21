@@ -48,8 +48,8 @@ Run in editable mode to develop and customize the source code directly:
 
 ```bash
 # 1. Clone repository and navigate
-git clone https://github.com/user/md_editor.git
-cd md_edit_and_view_app
+git clone https://github.com/t2-Kusumoto/md_editor.git
+cd md_editor
 
 # 2. Create and activate a virtual environment
 # macOS / Linux
@@ -73,12 +73,12 @@ md_editor
 **Using `pipx` or `uv`:**
 ```bash
 # Using pipx
-pipx install git+https://github.com/user/md_editor.git
+pipx install git+https://github.com/t2-Kusumoto/md_editor.git
 # or from local clone:
 pipx install .
 
 # Using uv
-uv tool install git+https://github.com/user/md_editor.git
+uv tool install git+https://github.com/t2-Kusumoto/md_editor.git
 # or from local clone:
 uv tool install .
 ```

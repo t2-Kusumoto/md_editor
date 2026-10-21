@@ -2,29 +2,48 @@
 
 [日本語版ドキュメント (Japanese README)](README_ja.md)
 
+> **Note**: This English documentation has been translated from Japanese using machine translation.
+
 A desktop-oriented, lightweight Markdown notebook editor & viewer inspired by Jupyter Lab. Write, view, and interact with Markdown cell-by-cell while seamlessly toggling between **Edit** and **Command (View)** modes.
 
 ---
 
-## Key Features
+## 🌟 About This Project & Design Philosophy
 
-- **Jupyter Lab-like Cell Paradigm**: Edit and preview Markdown, LaTeX formulas (KaTeX), code blocks with syntax highlighting, and emojis cell-by-cell.
-- **Rich Keyboard Navigation**: Intuitive Command and Edit modes with full shortcut support (Vim-style navigation, cell split, insert, delete, and reorder).
-- **Multi-Pane Workspace**: Split the editor vertically up to 3 panes with drag-and-drop tab management.
-- **Security-First Architecture**: Built-in DOMPurify HTML sanitization prevents local XSS attacks from untrusted Markdown files. Directory traversal protections secure local file operations.
-- **Table of Contents (ToC) Sidebar**: Instant heading outline with smooth jump-to-section.
-- **Exporting Capabilities**: Export clean Markdown (without cell delimiters), standalone HTML, and browser-native PDF print.
-- **No Frontend Build Step Required**: Works purely with Python backend (FastAPI) and Vanilla JS + CDN/local assets. No Node.js or npm build step needed for end users.
+This application was created and developed with **Google Antigravity**.
+
+The core design philosophy of this project is to provide a clean, transparent, and approachable foundation that **users can freely customize and extend to their own preferences using AI coding agents** (such as Google Antigravity, Claude Code, Cursor, GitHub Copilot, etc.).
+
+To achieve this ideal, the application intentionally avoids modern complex frontend build chains:
+- **Zero Frontend Build Step**: No Node.js, npm, Webpack, or Vite. The frontend runs purely on Vanilla JavaScript, Tailwind CSS, and CDN-loaded libraries.
+- **Readable & Transparent Codebase**: The entire frontend is organized in a single, well-structured file (`app.js`) with clear section headers, and the backend is a lightweight FastAPI server (`main.py`).
+- **AI Agent-Friendly Architecture**: Any edits to JavaScript, HTML, or Python files take effect immediately upon browser refresh or server restart. Both human developers and AI agents can rapidly inspect, debug, and modify features without build errors, bundling complexities, or tooling overhead.
+- Detailed developer and AI agent instructions are documented in [`AGENTS.md`](AGENTS.md) (and [`AGENTS_ja.md`](AGENTS_ja.md)).
 
 ---
 
-## Installation & Distribution
+## 🚀 Key Features
+
+- **Jupyter Lab-like Cell Paradigm**: Edit and preview Markdown, LaTeX formulas (KaTeX), code blocks with syntax highlighting, and emojis cell-by-cell.
+- **Rich Keyboard Navigation**: Intuitive Command and Edit modes with comprehensive shortcut support (Vim-style navigation, cell split, insert, delete, reorder, in-cell search/replace, and go-to-line).
+- **Multi-Pane Workspace & Tab Drag-and-Drop**: Split the editor vertically up to 3 panes (`Ctrl + \`), drag-and-drop tabs between panes or to the right edge to split, and merge panes (`Ctrl + Alt + M`).
+- **Concurrent Multi-Session Support**: Launch independent sessions concurrently in different directories on automatically assigned dynamic ports (`18000`, `18002`, ...). Launching again in the same directory seamlessly restores and focuses the existing session.
+- **Direct File Launching & OS Integration**: Open files directly from the command line (`md-editor document.md`) or via desktop environment actions (double-click or "Open With"). The application automatically sets the target file's directory as the active workspace.
+- **Full-Featured File Browser**: Manage workspace files and folders with right-click context menu (create, rename, delete, duplicate, copy, cut, paste) and keyboard shortcuts.
+- **Table of Contents (ToC) Sidebar**: Instant heading outline with smooth jump-to-section.
+- **Clean Exporting Capabilities**: Export clean Markdown (without cell delimiters), standalone HTML, and browser-native PDF print.
+- **Graceful Shutdown**: Close the application and release server resources cleanly via the menu `Quit` button or `Ctrl + Shift + Q` with a confirmation dialog.
+- **No Frontend Build Step Required**: Works purely with a lightweight Python backend (FastAPI) and Vanilla JS + CDN assets. No Node.js or npm build step needed.
+
+---
+
+## 📦 Installation & Distribution
 
 This application supports multiple installation methods depending on your environment and preferences.
 
 ### Option A: For Users with Python Installed
 
-#### 1. For Developers / Customization
+#### 1. For Developers / AI-Assisted Customization
 Run in editable mode to develop and customize the source code directly:
 
 ```bash
@@ -93,24 +112,41 @@ md-editor
 
 ---
 
-## Quick Start & Usage
+## 💡 Quick Start & Usage
+
+### 1. Launching from Terminal
 
 Run the command in your desired workspace folder:
 ```bash
-# Launch without arguments (opens workspace)
+# Launch without arguments (opens current directory as workspace)
 md-editor
-# or
+# or (if installed via pip/pipx)
 md_editor
 
-# Launch and directly open a Markdown file
+# Directly open a specific Markdown file
 md-editor document.md
+# or with relative/absolute path:
+md-editor path/to/notes.md
 ```
 Your default web browser will automatically open at `http://127.0.0.1:18000` (or the next available port).
 
+### 2. Multi-Session Support (Working in Multiple Directories)
+You can work on different projects simultaneously:
+- Running `md-editor` in directory `/path/to/project-A` launches a server on port `18000`.
+- Running `md-editor` in another terminal in directory `/path/to/project-B` automatically assigns an available port (e.g. `18002`) and opens an independent browser window for project B.
+- If you run `md-editor` again in a directory that is already running, it detects the existing session and restores/focuses it in your browser without creating duplicate servers.
+
+### 3. Desktop / GUI File Integration (Open With & Double Click)
+- **Linux (GNOME / Nautilus)**: You can right-click any `.md` file, select "Open With Other Application", and choose `md-editor`, or double-click `.md` files. The editor automatically sets the file's parent directory as the workspace and opens the file.
+- **Windows**: Right-click a `.md` file -> "Open with" -> choose `md-editor.exe`.
+
+### 4. Graceful Shutdown
+- Click the **Quit** button in the top menu bar or press **`Ctrl + Shift + Q`**.
+- A confirmation dialog will appear. Clicking **Quit** (or pressing Enter) will cleanly shut down the backend server and release the port.
 
 ---
 
-## Operation & Shortcuts
+## ⌨️ Operation & Shortcuts
 
 The editor operates in two primary modes, similar to Jupyter Lab: **Edit mode** (editing cell contents) and **Command mode** (navigating and manipulating cells).
 
@@ -181,7 +217,7 @@ The editor operates in two primary modes, similar to Jupyter Lab: **Edit mode** 
 
 ---
 
-## Technical Stack
+## 🛠️ Technical Stack
 
 - **Backend**: Python (FastAPI, Uvicorn, Jinja2, WebSockets)
 - **Frontend**: HTML5, Vanilla JavaScript, Tailwind CSS
@@ -193,7 +229,7 @@ The editor operates in two primary modes, similar to Jupyter Lab: **Edit mode** 
 
 ---
 
-## Running Automated Tests
+## 🧪 Running Automated Tests
 
 Run backend and parser tests using standard Python `unittest`:
 
@@ -203,6 +239,6 @@ python3 -m unittest discover tests
 
 ---
 
-## License
+## 📄 License
 
 MIT License

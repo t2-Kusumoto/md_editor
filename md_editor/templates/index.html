@@ -420,9 +420,9 @@
 
     <!-- Help Modal (Keyboard Shortcuts) -->
     <div id="shortcuts-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden border border-jupyter-border">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-xl overflow-hidden border border-jupyter-border">
             <div class="px-6 py-4 bg-jupyter-gray border-b border-jupyter-border flex justify-between items-center">
-                <h3 class="font-bold text-gray-700 text-base">Jupyter Lab Keyboard Shortcuts</h3>
+                <h3 class="font-bold text-gray-700 text-base">Keyboard Shortcuts</h3>
                 <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
@@ -441,6 +441,10 @@
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Shift + ↑ / ↓</kbd> <span class="text-gray-600">選択行 / 現在行を上下に移動（同一セル内）</span></li>
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + B</kbd> <span class="text-gray-600">選択文字列を強調表示（**太字**）</span></li>
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + I</kbd> <span class="text-gray-600">選択文字列を斜体表示（*イタリック*）</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + ← / →</kbd> <span class="text-gray-600">現在行の行頭 / 行末へカーソル移動</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + ↑ / ↓</kbd> <span class="text-gray-600">セルの先頭 / セルの末尾へカーソル移動</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + H</kbd> <span class="text-gray-600">セル内文字列置換プロンプトを開く (Replace)</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + G</kbd> <span class="text-gray-600">セル先行移動プロンプトを開く (Go to Line)</span></li>
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Alt + L</kbd> <span class="text-gray-600">現在行をヘッダー下線から12行下の位置に移動</span></li>
                     </ul>
                 </div>
@@ -462,11 +466,13 @@
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">X</kbd> <span class="text-gray-600">選択中のセルをカット</span></li>
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">V</kbd> <span class="text-gray-600">コピー/カットしたセルを下に貼り付け</span></li>
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Shift + V</kbd> <span class="text-gray-600">コピー/カットしたセルを上に貼り付け</span></li>
-                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Shift + クリック / 矢印キー</kbd> <span class="text-gray-600">複数セルを選択状態にする</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Shift + ↑ / ↓ / J / K</kbd> <span class="text-gray-600">複数セルを選択状態にする</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Shift + クリック</kbd> <span class="text-gray-600">複数セルを範囲選択</span></li>
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Esc</kbd> <span class="text-gray-600">複数セル選択を解除（起点セル単独選択へ戻す）</span></li>
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Shift + M</kbd> <span class="text-gray-600">複数選択されたセルを全て結合</span></li>
-                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Z</kbd> <span class="text-gray-600">セル操作のUndo（元に戻す）</span></li>
-                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Shift + Z</kbd> <span class="text-gray-600">セル操作のRedo（やり直す）</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Alt + -</kbd> <span class="text-gray-600">選択中のセルを中央で分割 (Split Cell)</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Z / Ctrl + Z</kbd> <span class="text-gray-600">セル操作のUndo（元に戻す）</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Shift + Z / Ctrl + Y</kbd> <span class="text-gray-600">セル操作のRedo（やり直す）</span></li>
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + A</kbd> <span class="text-gray-600">すべてのセルを選択</span></li>
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Alt + L</kbd> <span class="text-gray-600">選択セルの上枠をヘッダー下線から2行下の位置に移動</span></li>
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">G, G</kbd> <span class="text-gray-600">先頭セルへ移動</span></li>
@@ -491,6 +497,15 @@
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Shift + F</kbd> <span class="text-gray-600">ファイルブラウザの表示/非表示</span></li>
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Alt + F</kbd> <span class="text-gray-600">目次 (Table of Contents) の表示/非表示</span></li>
                         <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + Shift + Q</kbd> <span class="text-gray-600">アプリケーションを終了 (Quit)</span></li>
+                    </ul>
+                </div>
+                <hr class="border-gray-100">
+                <div>
+                    <h4 class="font-semibold text-jupyter-blue mb-2">File Browser (ファイル操作 - 非入力時)</h4>
+                    <ul class="space-y-1 text-xs">
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + C</kbd> <span class="text-gray-600">選択中のファイル / フォルダをコピー</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + X</kbd> <span class="text-gray-600">選択中のファイル / フォルダをカット (切り取り)</span></li>
+                        <li class="flex justify-between py-1"><kbd class="bg-gray-100 border border-gray-300 px-1.5 py-0.5 rounded shadow-sm">Ctrl + V</kbd> <span class="text-gray-600">コピー / カットしたファイル / フォルダを貼り付け</span></li>
                     </ul>
                 </div>
             </div>

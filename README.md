@@ -112,16 +112,19 @@ Your default web browser will automatically open at `http://127.0.0.1:18000` (or
 
 ## Operation & Shortcuts
 
-The editor operates in two primary modes, identical to Jupyter Lab: **Edit mode** (editing cell contents) and **Command mode** (navigating and manipulating cells).
+The editor operates in two primary modes, similar to Jupyter Lab: **Edit mode** (editing cell contents) and **Command mode** (navigating and manipulating cells).
 
 ### Global Shortcuts
+- **`Ctrl + Shift + ← / H`**: Switch to the tab on the left in the active pane.
+- **`Ctrl + Shift + → / L`**: Switch to the tab on the right in the active pane.
+- **`Ctrl + N`** or **`Ctrl + Alt + N`**: Create a new notebook (new tab).
+- **`Ctrl + Alt + W`**: Close active tab in current pane.
+- **`Ctrl + Alt + M`**: Merge current pane into adjacent left pane.
+- **`Ctrl + S`**: Save current notebook.
+- **`Ctrl + Alt + S`**: Save notebook as a new file (Save As).
+- **`Ctrl + \`**: Split active editor vertically (up to 3 panes).
 - **`Ctrl + Shift + F`**: Toggle File Browser sidebar.
 - **`Ctrl + Alt + F`**: Toggle Table of Contents (ToC) sidebar.
-- **`Ctrl + \`**: Split active editor vertically (up to 3 panes).
-- **`Ctrl + S`**: Save current notebook.
-- **`Ctrl + Alt + S`**: Save notebook as a new file.
-- **`Ctrl + Alt + N`**: Create a new notebook.
-- **`Ctrl + Alt + W`**: Close current tab.
 - **`Ctrl + Shift + Q`**: Quit application and gracefully stop backend server.
 
 ### Edit Mode (Typing inside a cell)
@@ -129,36 +132,52 @@ The editor operates in two primary modes, identical to Jupyter Lab: **Edit mode*
 - **`Ctrl + Enter`**: Render cell and stay on current cell in Command mode.
 - **`Shift + Enter`**: Render cell and select the cell below (creates a new cell if at the end).
 - **`Ctrl + /`**: Toggle comment (`<!-- ... -->`) for selected lines or current line.
-- **`Ctrl + Alt + -`**: Split current cell at selection.
+- **`Ctrl + Alt + -`**: Split current cell at cursor or selection midpoint.
 - **`Ctrl + Shift + K`**: Delete current line(s).
 - **`Ctrl + Shift + D`**: Duplicate current line(s) downward.
-- **`Ctrl + Shift + ↑ / ↓`**: Move line(s) up or down within cell.
+- **`Ctrl + Shift + ↑ / ↓`**: Move line(s) up or down within current cell.
 - **`Ctrl + B`**: Bold text (`**...**`).
 - **`Ctrl + I`**: Italicize text (`*...*`).
-- **`Ctrl + Alt + L`**: Recenter current line in editor view.
+- **`Ctrl + ← / →`**: Move cursor to start / end of current line.
+- **`Ctrl + ↑ / ↓`**: Move cursor to start / end of current cell.
+- **`Ctrl + H`**: Open in-cell string replacement prompt (Interactive Replace: `y`/`n`/`a`/`q`/`Esc`).
+- **`Ctrl + G`**: Open in-cell line jump prompt (Go to Line).
+- **`Ctrl + Alt + L`**: Recenter current line 12 lines below editor header.
 
-### Command Mode (Cell navigation)
+### Command Mode (Cell navigation & manipulation)
 - **`Enter`**: Enter Edit mode for selected cell.
 - **`J`** or **`Ctrl + ↓`**: Select cell below.
 - **`K`** or **`Ctrl + ↑`**: Select cell above.
-- **`↑ / ↓`**: Smoothly scroll page up or down.
-- **`Ctrl + Shift + ↑ / ↓`**: Move selected cell(s) up or down.
-- **`A`**: Insert a new cell **above**.
-- **`B`**: Insert a new cell **below**.
+- **`↑ / ↓`**: Smoothly scroll viewport up or down.
+- **`H`** or **`←`**: Move focus to left pane (in multi-pane layout).
+- **`L`** or **`→`**: Move focus to right pane (in multi-pane layout).
+- **`Shift + ↑ / ↓`** or **`Shift + J / K`**: Multi-select adjacent cells.
+- **`Shift + Click`**: Range-select cells from anchor to clicked cell.
+- **`Esc`**: Clear multi-cell selection back to single anchor cell.
+- **`Ctrl + Shift + ↑ / ↓`**: Move selected cell(s) up or down (reorder).
+- **`A`**: Insert a new cell **above** selected cell.
+- **`B`**: Insert a new cell **below** selected cell.
 - **`D, D`** (press D twice): Delete selected cell(s).
-- **`C`**: Copy selected cell.
-- **`X`**: Cut selected cell.
-- **`V`**: Paste cell below.
-- **`Shift + V`**: Paste cell above.
-- **`Shift + ↑ / ↓`** or **`Shift + Click`**: Multi-select cells.
-- **`Esc`**: Clear multi-selection back to single cell.
-- **`Shift + M`**: Merge selected cells.
-- **`Z`**: Undo cell operations.
-- **`Shift + Z`**: Redo cell operations.
+- **`C`**: Copy selected cell(s).
+- **`X`**: Cut selected cell(s).
+- **`V`**: Paste cell(s) below.
+- **`Shift + V`**: Paste cell(s) above.
+- **`Shift + M`**: Merge all selected cells into a single cell.
+- **`Ctrl + Alt + -`**: Split selected cell into two cells.
+- **`Z`** or **`Ctrl + Z`**: Undo cell operations.
+- **`Shift + Z`** or **`Ctrl + Y`**: Redo cell operations.
 - **`Ctrl + A`**: Select all cells.
+- **`Ctrl + Alt + L`**: Recenter top edge of active cell 2 lines below editor header.
 - **`G, G`**: Jump to first cell.
 - **`[Number] + G, G`** (e.g. `5gg`): Jump to specific cell number.
 - **`Shift + G`**: Jump to last cell.
+- **`Shift + Enter`**: Render cell (preview).
+- **`Ctrl + \`**: Split editor vertically into multiple panes.
+
+### File Browser Shortcuts (When not editing cells)
+- **`Ctrl + C`**: Copy selected file or folder in browser.
+- **`Ctrl + X`**: Cut selected file or folder in browser.
+- **`Ctrl + V`**: Paste copied or cut file/folder into current directory.
 
 ---
 

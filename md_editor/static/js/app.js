@@ -4064,7 +4064,13 @@ async function handleFileClick(filename) {
 
     // 3. Other files: prompt download
     const rawUrl = `/api/raw-file?path=${encodeURIComponent(fullRelPath).replace(/%2F/g, '/')}`;
-    const wantDownload = confirm(`"${filename}" cannot be previewed directly in the editor. Would you like to download it?`);
+    const wantDownload = await showConfirmDialog({
+        title: 'Download File',
+        message: `"${filename}" cannot be previewed directly in the editor. Would you like to download it?`,
+        confirmText: 'Download',
+        cancelText: 'Cancel',
+        isDanger: false
+    });
     if (wantDownload) {
         const a = document.createElement('a');
         a.href = rawUrl;
@@ -4175,7 +4181,13 @@ async function saveNotebook(targetDoc = null) {
     if (doc.isNew && !doc.relPath && fileExists) {
         const sameFile = existingFiles.find(f => f.toLowerCase() === filenameWithExt.toLowerCase());
         if (sameFile && doc.filename === 'untitled') {
-            const confirmOverwrite = confirm(`File "${filenameWithExt}" already exists. Overwrite it?`);
+            const confirmOverwrite = await showConfirmDialog({
+                title: 'Overwrite File',
+                message: `File "${filenameWithExt}" already exists. Overwrite it?`,
+                confirmText: 'Overwrite',
+                cancelText: 'Cancel',
+                isDanger: true
+            });
             if (!confirmOverwrite) return false;
         }
     }
@@ -5085,7 +5097,7 @@ function attachTabDragEvents(tabEl, docId, paneIdx) {
                 overlay.style.width = '100%';
                 overlay.style.right = '0';
                 const badge = overlay.querySelector('span');
-                if (badge) badge.textContent = 'タブを移動 (Drop to move)';
+                if (badge) badge.textContent = 'Drop to move tab';
             }
         }
     });
@@ -5242,7 +5254,7 @@ function setupPaneDropEvents(paneIdx) {
         overlay.style.width = '100%';
         overlay.style.right = '0';
         const badge = overlay.querySelector('span');
-        if (badge) badge.textContent = 'タブを移動 (Drop to move)';
+        if (badge) badge.textContent = 'Drop to move tab';
     }
 
     container.addEventListener('dragover', (e) => {
@@ -5266,13 +5278,13 @@ function setupPaneDropEvents(paneIdx) {
             overlay.style.left = '50%';
             overlay.style.width = '50%';
             overlay.style.right = '0';
-            if (badge) badge.textContent = 'ペインを分割 (Drop to split)';
+            if (badge) badge.textContent = 'Drop to split pane';
         } else {
             overlay.classList.remove('split-mode');
             overlay.style.left = '0';
             overlay.style.width = '100%';
             overlay.style.right = '0';
-            if (badge) badge.textContent = 'タブを移動 (Drop to move)';
+            if (badge) badge.textContent = 'Drop to move tab';
         }
     });
 
@@ -5337,6 +5349,83 @@ function setupPaneDropEvents(paneIdx) {
     });
 }
 
+// Generic Custom Confirmation Dialog (guarantees English UI and unified styling)
+function showConfirmDialog({ title = 'Confirmation', message = '', confirmText = 'OK', cancelText = 'Cancel', isDanger = false } = {}) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirm-modal');
+        const titleEl = document.getElementById('confirm-modal-title');
+        const msgEl = document.getElementById('confirm-modal-message');
+        const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
+        const okBtn = document.getElementById('confirm-modal-ok-btn');
+
+        if (!modal || !okBtn || !cancelBtn) {
+            resolve(window.confirm(message));
+            return;
+        }
+
+        if (titleEl) titleEl.textContent = title;
+        if (msgEl) msgEl.textContent = message;
+        okBtn.textContent = confirmText;
+        cancelBtn.textContent = cancelText;
+
+        if (isDanger) {
+            okBtn.className = 'px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded shadow transition-colors font-semibold';
+        } else {
+            okBtn.className = 'px-3 py-1.5 bg-jupyter-blue hover:bg-blue-600 text-white rounded shadow transition-colors font-semibold';
+        }
+
+        modal.classList.remove('hidden');
+
+        let isResolved = false;
+
+        const cleanup = () => {
+            if (isResolved) return;
+            isResolved = true;
+            modal.classList.add('hidden');
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+            modal.removeEventListener('click', onBackdrop);
+            document.removeEventListener('keydown', onKeyDown, true);
+        };
+
+        const onOk = (e) => {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            cleanup();
+            resolve(true);
+        };
+
+        const onCancel = (e) => {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            cleanup();
+            resolve(false);
+        };
+
+        const onBackdrop = (e) => {
+            if (e.target === modal) {
+                onCancel(e);
+            }
+        };
+
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                onCancel();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                onOk();
+            }
+        };
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        modal.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onKeyDown, true);
+        okBtn.focus();
+    });
+}
+
 // Check Unsaved Changes
 function checkUnsavedChangesForDoc(doc, onConfirm) {
     if (!doc.isModified) {
@@ -5362,7 +5451,14 @@ async function deleteFileByName(filename) {
     }
 
     const displayName = targetFile.includes('/') ? targetFile.split('/').pop() : targetFile;
-    if (!confirm(`Are you sure you want to delete "${displayName}"? This action cannot be undone.`)) {
+    const ok = await showConfirmDialog({
+        title: 'Delete File',
+        message: `Are you sure you want to delete "${displayName}"? This action cannot be undone.`,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        isDanger: true
+    });
+    if (!ok) {
         return;
     }
 
@@ -5404,7 +5500,14 @@ async function deleteFolderByName(folderName) {
     }
 
     const displayName = folderName.includes('/') ? folderName.split('/').pop() : folderName;
-    if (!confirm(`Are you sure you want to delete folder "${displayName}" and all its contents? This action cannot be undone.`)) {
+    const ok = await showConfirmDialog({
+        title: 'Delete Folder',
+        message: `Are you sure you want to delete folder "${displayName}" and all its contents? This action cannot be undone.`,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        isDanger: true
+    });
+    if (!ok) {
         return;
     }
 
@@ -7284,7 +7387,14 @@ connectWebSocket();
 
 // Handle the explicit "Quit" button and shortcut
 async function executeQuit() {
-    if (confirm("Are you sure you want to quit the application?")) {
+    const ok = await showConfirmDialog({
+        title: 'Quit Application',
+        message: 'Are you sure you want to quit the application?',
+        confirmText: 'Quit',
+        cancelText: 'Cancel',
+        isDanger: true
+    });
+    if (ok) {
         isAppExplicitlyClosed = true;
         try {
             await fetch('/api/shutdown', { method: 'POST' });

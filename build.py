@@ -86,6 +86,18 @@ def main():
     sep = os.pathsep  # ':' on Linux/Mac, ';' on Windows
     pyinstaller_cmd = get_pyinstaller_command()
 
+    icon_ico = os.path.join("md_editor", "static", "img", "md_editor_icon.ico")
+    icon_png = os.path.join("md_editor", "static", "img", "md_editor_icon.png")
+    icon_args = []
+    if sys.platform.startswith("win"):
+        if os.path.exists(icon_ico):
+            icon_args = ["--icon", icon_ico]
+    else:
+        if os.path.exists(icon_png):
+            icon_args = ["--icon", icon_png]
+        elif os.path.exists(icon_ico):
+            icon_args = ["--icon", icon_ico]
+
     cmd = pyinstaller_cmd + [
         "--name", "md-editor",
         "--onefile",
@@ -96,6 +108,7 @@ def main():
         "--hidden-import", "uvicorn.lifespan.on",
         "--hidden-import", "websockets",
         "--hidden-import", "jinja2",
+    ] + icon_args + [
         "-c", "md_editor/main.py"
     ]
 

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=MD Editor
+Comment=Jupyter-like Markdown Notebook Editor & Viewer
+# Specify the command or path to md-editor executable (e.g., md-editor, or /absolute/path/to/md-editor)
+Exec=md-editor %U
+# Specify the icon name (if installed in ~/.local/share/icons or /usr/share/icons) or absolute path to md_editor_icon.png
+Icon=md_editor_icon
+Terminal=false
+MimeType=text/markdown;text/x-markdown;
+Categories=Utility;TextEditor;
+StartupNotify=true

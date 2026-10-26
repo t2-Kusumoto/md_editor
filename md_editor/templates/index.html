@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Markdown Notebook Editor & Viewer</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/img/md_editor_icon.png">
+    <link rel="shortcut icon" href="/static/img/md_editor_icon.ico">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -46,7 +49,10 @@
     <!-- Top Menu Bar -->
     <header class="h-9 bg-jupyter-gray border-b border-jupyter-border flex items-center px-4 select-none z-50">
         <div class="flex items-center space-x-4">
-            <span class="font-bold text-jupyter-blue mr-2"><i class="fa-regular fa-file-lines mr-1"></i>MD Editor</span>
+            <span class="font-bold text-jupyter-blue mr-2 flex items-center">
+                <img src="/static/img/md_editor_icon.png" class="w-4 h-4 inline-block mr-1.5" alt="logo">
+                MD Editor
+            </span>
             
             <!-- File Menu Dropdown -->
             <div class="relative group">

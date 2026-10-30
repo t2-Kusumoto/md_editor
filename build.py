@@ -130,7 +130,7 @@ def main():
             icon_args = ["--icon", icon_ico]
 
     cmd = pyinstaller_cmd + [
-        "--name", "md-editor",
+        "--name", "mded",
         "--onefile",
         "--clean",
         "--add-data", f"md_editor/static{sep}md_editor/static",

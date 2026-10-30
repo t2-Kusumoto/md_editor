@@ -28,7 +28,7 @@ To achieve this ideal, the application intentionally avoids modern complex front
 - **Rich Keyboard Navigation**: Intuitive Command and Edit modes with comprehensive shortcut support (Vim-style navigation, cell split, insert, delete, reorder, in-cell search/replace, and go-to-line).
 - **Multi-Pane Workspace & Tab Drag-and-Drop**: Split the editor vertically up to 3 panes (`Ctrl + \`), drag-and-drop tabs between panes or to the right edge to split, and merge panes (`Ctrl + Alt + M`).
 - **Concurrent Multi-Session Support**: Launch independent sessions concurrently in different directories on automatically assigned dynamic ports (`18000`, `18002`, ...). Launching again in the same directory seamlessly restores and focuses the existing session.
-- **Direct File Launching & OS Integration**: Open files directly from the command line (`md-editor document.md`) or via desktop environment actions (double-click or "Open With"). The application automatically sets the target file's directory as the active workspace.
+- **Direct File Launching & OS Integration**: Open files directly from the command line (`mded document.md`) or via desktop environment actions (double-click or "Open With"). The application automatically sets the target file's directory as the active workspace.
 - **Full-Featured File Browser**: Manage workspace files and folders with right-click context menu (create, rename, delete, duplicate, copy, cut, paste) and keyboard shortcuts.
 - **Table of Contents (ToC) Sidebar**: Instant heading outline with smooth jump-to-section.
 - **Clean Exporting Capabilities**: Export clean Markdown (without cell delimiters), standalone HTML, and browser-native PDF print.
@@ -64,7 +64,7 @@ python -m venv .venv
 pip install -e .
 
 # 4. Launch the application
-md_editor
+mded
 # Any changes to Python or JS files will reflect immediately without reinstalling!
 ```
 
@@ -90,7 +90,7 @@ source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
 pip install .
 
 # macOS / Linux: Create a symlink to user bin
-ln -s "$(pwd)/.venv/bin/md_editor" ~/.local/bin/md_editor
+ln -s "$(pwd)/.venv/bin/mded" ~/.local/bin/mded
 
 # Windows: Add .venv\Scripts to your user PATH or create a shortcut
 ```
@@ -104,10 +104,10 @@ Create a single standalone binary using PyInstaller:
 ```bash
 python3 build.py
 ```
-This builds an executable into the `dist/` directory (`dist/md-editor` on Linux/macOS or `dist/md-editor.exe` on Windows).
+This builds an executable into the `dist/` directory (`dist/mded` on Linux/macOS or `dist/mded.exe` on Windows).
 Place this binary in any directory included in your system `PATH` and launch it directly from terminal:
 ```bash
-md-editor
+mded
 ```
 
 ---
@@ -119,26 +119,24 @@ md-editor
 Run the command in your desired workspace folder:
 ```bash
 # Launch without arguments (opens current directory as workspace)
-md-editor
-# or (if installed via pip/pipx)
-md_editor
+mded
 
 # Directly open a specific Markdown file
-md-editor document.md
+mded document.md
 # or with relative/absolute path:
-md-editor path/to/notes.md
+mded path/to/notes.md
 ```
 Your default web browser will automatically open at `http://127.0.0.1:18000` (or the next available port).
 
 ### 2. Multi-Session Support (Working in Multiple Directories)
 You can work on different projects simultaneously:
-- Running `md-editor` in directory `/path/to/project-A` launches a server on port `18000`.
-- Running `md-editor` in another terminal in directory `/path/to/project-B` automatically assigns an available port (e.g. `18002`) and opens an independent browser window for project B.
-- If you run `md-editor` again in a directory that is already running, it detects the existing session and restores/focuses it in your browser without creating duplicate servers.
+- Running `mded` in directory `/path/to/project-A` launches a server on port `18000`.
+- Running `mded` in another terminal in directory `/path/to/project-B` automatically assigns an available port (e.g. `18002`) and opens an independent browser window for project B.
+- If you run `mded` again in a directory that is already running, it detects the existing session and restores/focuses it in your browser without creating duplicate servers.
 
 ### 3. Desktop / GUI File Integration (Open With & Double Click)
-- **Linux (GNOME / Nautilus)**: You can right-click any `.md` file, select "Open With Other Application", and choose `md-editor`, or double-click `.md` files. The editor automatically sets the file's parent directory as the workspace and opens the file.
-- **Windows**: Right-click a `.md` file -> "Open with" -> choose `md-editor.exe`.
+- **Linux (GNOME / Nautilus)**: You can right-click any `.md` file, select "Open With Other Application", and choose `mded`, or double-click `.md` files. The editor automatically sets the file's parent directory as the workspace and opens the file.
+- **Windows**: Right-click a `.md` file -> "Open with" -> choose `mded.exe`.
 
 ### 4. Graceful Shutdown
 - Click the **Quit** button in the top menu bar or press **`Ctrl + Shift + Q`**.

@@ -26,8 +26,7 @@ test = [
 Homepage = "https://github.com/t2-Kusumoto/md_editor"
 
 [project.scripts]
-md_editor = "md_editor.main:start"
-md-editor = "md_editor.main:start"
+mded = "md_editor.main:start"
 
 [tool.setuptools.packages.find]
 where = ["."]

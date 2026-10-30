@@ -21,7 +21,7 @@ class TestCLIArgsParsing(unittest.TestCase):
             shutil.rmtree(self.test_dir, ignore_errors=True)
 
     def test_no_args(self):
-        base_dir, initial_file = parse_args_and_setup_workspace(["md-editor"])
+        base_dir, initial_file = parse_args_and_setup_workspace(["mded"])
         self.assertEqual(os.path.realpath(base_dir), os.path.realpath(self.test_dir))
         self.assertIsNone(initial_file)
 
@@ -30,7 +30,7 @@ class TestCLIArgsParsing(unittest.TestCase):
         with open(target, "w", encoding="utf-8") as f:
             f.write("# Hello")
 
-        base_dir, initial_file = parse_args_and_setup_workspace(["md-editor", "document.md"])
+        base_dir, initial_file = parse_args_and_setup_workspace(["mded", "document.md"])
         self.assertEqual(os.path.realpath(base_dir), os.path.realpath(self.test_dir))
         self.assertEqual(initial_file, "document.md")
 
@@ -41,7 +41,7 @@ class TestCLIArgsParsing(unittest.TestCase):
         with open(target, "w", encoding="utf-8") as f:
             f.write("# Meeting Notes")
 
-        base_dir, initial_file = parse_args_and_setup_workspace(["md-editor", "notes/meeting.md"])
+        base_dir, initial_file = parse_args_and_setup_workspace(["mded", "notes/meeting.md"])
         self.assertEqual(os.path.realpath(base_dir), os.path.realpath(sub_dir))
         self.assertEqual(initial_file, "meeting.md")
 
@@ -54,7 +54,7 @@ class TestCLIArgsParsing(unittest.TestCase):
                 f.write("# External File")
 
             # Simulate OS 'Open with...' or double-click passing absolute path
-            base_dir, initial_file = parse_args_and_setup_workspace(["md-editor", target])
+            base_dir, initial_file = parse_args_and_setup_workspace(["mded", target])
             self.assertEqual(os.path.realpath(base_dir), os.path.realpath(other_dir))
             self.assertEqual(initial_file, "external.md")
         finally:
@@ -71,7 +71,7 @@ class TestCLIArgsParsing(unittest.TestCase):
             f.write("# Report")
 
         # Even though CWD is home_sim, base_dir must be deep_folder, NOT home_sim
-        base_dir, initial_file = parse_args_and_setup_workspace(["md-editor", file_path])
+        base_dir, initial_file = parse_args_and_setup_workspace(["mded", file_path])
         self.assertEqual(os.path.realpath(base_dir), os.path.realpath(deep_folder))
         self.assertEqual(initial_file, "report.md")
 
@@ -81,7 +81,7 @@ class TestCLIArgsParsing(unittest.TestCase):
         with open(target, "w", encoding="utf-8") as f:
             f.write("# Test")
 
-        base_dir, initial_file = parse_args_and_setup_workspace(["md-editor", "UPPERCASE.MD"])
+        base_dir, initial_file = parse_args_and_setup_workspace(["mded", "UPPERCASE.MD"])
         self.assertEqual(initial_file, "UPPERCASE.MD")
 
     def test_non_md_extension_fails(self):
@@ -92,7 +92,7 @@ class TestCLIArgsParsing(unittest.TestCase):
         stderr_buf = io.StringIO()
         with patch("sys.stderr", stderr_buf):
             with self.assertRaises(SystemExit) as cm:
-                parse_args_and_setup_workspace(["md-editor", "photo.png"])
+                parse_args_and_setup_workspace(["mded", "photo.png"])
             self.assertEqual(cm.exception.code, 1)
         self.assertIn("must have a .md extension", stderr_buf.getvalue())
 
@@ -100,7 +100,7 @@ class TestCLIArgsParsing(unittest.TestCase):
         stderr_buf = io.StringIO()
         with patch("sys.stderr", stderr_buf):
             with self.assertRaises(SystemExit) as cm:
-                parse_args_and_setup_workspace(["md-editor", "nonexistent.md"])
+                parse_args_and_setup_workspace(["mded", "nonexistent.md"])
             self.assertEqual(cm.exception.code, 1)
         self.assertIn("File not found", stderr_buf.getvalue())
 
@@ -111,7 +111,7 @@ class TestCLIArgsParsing(unittest.TestCase):
         stderr_buf = io.StringIO()
         with patch("sys.stderr", stderr_buf):
             with self.assertRaises(SystemExit) as cm:
-                parse_args_and_setup_workspace(["md-editor", "my_folder"])
+                parse_args_and_setup_workspace(["mded", "my_folder"])
             self.assertEqual(cm.exception.code, 1)
         self.assertIn("must have a .md extension", stderr_buf.getvalue())
 
@@ -122,7 +122,7 @@ class TestCLIArgsParsing(unittest.TestCase):
         stderr_buf = io.StringIO()
         with patch("sys.stderr", stderr_buf):
             with self.assertRaises(SystemExit) as cm:
-                parse_args_and_setup_workspace(["md-editor", "fake_doc.md"])
+                parse_args_and_setup_workspace(["mded", "fake_doc.md"])
             self.assertEqual(cm.exception.code, 1)
         self.assertIn("is a directory, not a file", stderr_buf.getvalue())
 
@@ -130,7 +130,7 @@ class TestCLIArgsParsing(unittest.TestCase):
         stderr_buf = io.StringIO()
         with patch("sys.stderr", stderr_buf):
             with self.assertRaises(SystemExit) as cm:
-                parse_args_and_setup_workspace(["md-editor", "file1.md", "file2.md"])
+                parse_args_and_setup_workspace(["mded", "file1.md", "file2.md"])
             self.assertEqual(cm.exception.code, 1)
         self.assertIn("Only one file can be specified", stderr_buf.getvalue())
 
@@ -159,7 +159,7 @@ class TestServerInitialFileIntegration(unittest.TestCase):
         with open(target, "w", encoding="utf-8") as f:
             f.write("# Welcome Note\nThis is a test.")
 
-        base_dir, initial_file = parse_args_and_setup_workspace(["md-editor", "welcome.md"])
+        base_dir, initial_file = parse_args_and_setup_workspace(["mded", "welcome.md"])
         orig_base = main_mod.BASE_DIR
         orig_init = main_mod.INITIAL_FILE
         try:

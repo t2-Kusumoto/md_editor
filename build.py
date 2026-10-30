@@ -53,7 +53,36 @@ def get_pyinstaller_command() -> list[str]:
     raise RuntimeError("PyInstaller executable or module could not be found.")
 
 
+def ensure_correct_python_environment():
+    """Detect if an active virtual environment in the shell was bypassed (e.g. 'python3' alias on Windows)."""
+    active_venv = os.environ.get("VIRTUAL_ENV")
+    if not active_venv:
+        return
+
+    # Normalize paths for comparison (case-insensitive on Windows)
+    norm_sys_prefix = os.path.normcase(os.path.abspath(sys.prefix))
+    norm_active_venv = os.path.normcase(os.path.abspath(active_venv))
+
+    if norm_sys_prefix != norm_active_venv:
+        venv_python = (
+            os.path.join(active_venv, "Scripts", "python.exe")
+            if sys.platform.startswith("win")
+            else os.path.join(active_venv, "bin", "python")
+        )
+        print("[Notice] Active virtual environment detected in shell, but build.py was invoked with a different Python:")
+        print(f"  Shell environment: {active_venv}")
+        print(f"  Current Python:    {sys.executable}")
+        if os.path.exists(venv_python):
+            print(f"  Automatically switching to: {venv_python}\n")
+            sys.exit(subprocess.call([venv_python, os.path.abspath(__file__)] + sys.argv[1:]))
+        else:
+            print(f"[Error] Virtual environment Python executable not found at: {venv_python}")
+            print("Please ensure your virtual environment is intact and re-run with 'python build.py'.")
+            sys.exit(1)
+
+
 def main():
+    ensure_correct_python_environment()
     print("Checking dependencies for PyInstaller build...")
 
     if is_online():
@@ -70,17 +99,19 @@ def main():
         except Exception:
             run_pip_install(["--upgrade", "pyinstaller"])
 
-        # 3. Install project dependencies
+        # 3. Install project dependencies directly (avoids running 'pip install .' which creates entrypoint executables in Scripts/)
+        dependencies = [
+            "fastapi>=0.100.0",
+            "uvicorn>=0.22.0",
+            "jinja2>=3.0.0",
+            "websockets>=10.0",
+        ]
         try:
-            run_pip_install(["."])
-        except Exception:
-            run_pip_install(["--no-build-isolation", "."])
+            run_pip_install(dependencies)
+        except Exception as e:
+            print(f"Notice: dependency install step: {e}")
     else:
         print("Network unreachable or offline: using locally installed packages...")
-        try:
-            run_pip_install(["--no-build-isolation", "--no-deps", "."])
-        except Exception as e:
-            print(f"Notice: offline install step: {e}")
 
 
     sep = os.pathsep  # ':' on Linux/Mac, ';' on Windows

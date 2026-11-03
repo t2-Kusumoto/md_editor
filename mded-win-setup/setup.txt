@@ -1,0 +1,35 @@
+======================================================================
+ mded - Setup & Usage Instructions
+======================================================================
+
+[Installation]
+Double-click `setup_mded.exe` to start the installation.
+
+The editor will be installed to:
+  %LOCALAPPDATA%\Programs\Md_Editor
+  (e.g., C:\Users\<YourUsername>\AppData\Local\Programs\Md_Editor)
+
+The installation path will be automatically added to your User PATH 
+environment variable.
+
+
+[How to Launch]
+To run the editor from the terminal (Command Prompt / PowerShell):
+  Type `mded` in any directory and press Enter.
+
+
+[Setting .md File Association (Optional)]
+To open `.md` files directly by double-clicking:
+1. Right-click any `.md` file.
+2. Select "Open with" -> "Choose another app".
+3. Click "Choose an app on your PC" (or "Look for another app on this PC").
+4. Browse to the installation folder:
+     %LOCALAPPDATA%\Programs\Md_Editor\mded.exe
+   and select `mded.exe`.
+
+
+[Uninstallation]
+To uninstall, navigate to:
+  %LOCALAPPDATA%\Programs\Md_Editor
+and double-click `unins000.exe`.
+======================================================================

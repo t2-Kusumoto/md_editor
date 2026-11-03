@@ -1,0 +1,11 @@
+# Instructions for placing the macOS executable:
+#
+# Please compile or place the macOS standalone binary named 'mded' in this directory:
+#   mded_setup_and_uninstall_mac/mded
+#
+# Once 'mded' is placed here, run:
+#   chmod +x mded
+#   ./setup.sh
+#
+# The setup script will automatically install it to ~/.local/bin/mded and create
+# the macOS Application bundle ~/Applications/MD Editor.app.

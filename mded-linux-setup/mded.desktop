@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=MD Editor
+Comment=Jupyter Lab-like Markdown Editor & Viewer
+Exec=$HOME/.local/bin/mded %f
+Icon=$HOME/.local/share/icons/mded_icon.png
+Terminal=false
+MimeType=text/markdown;text/plain;
+Categories=Utility;TextEditor;
+StartupNotify=true

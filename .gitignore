@@ -53,3 +53,11 @@ dist/
 
 # Distribution repository clone
 md_editor_app/
+
+# Release setup binaries and archives
+mded-linux-setup/mded
+mded-mac-setup/mded
+mded-win-setup/*.exe
+mded_ins/mded.exe
+*.tar.gz
+*.zip

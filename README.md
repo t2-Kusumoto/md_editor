@@ -8,67 +8,13 @@ A desktop-oriented, lightweight Markdown notebook editor & viewer inspired by Ju
 
 ---
 
-## 🌟 About This Project & Design Philosophy
-
-This application was created and developed with **Google Antigravity**.
-
-The core design philosophy of this project is to provide a clean, transparent, and approachable foundation that **users can freely customize and extend to their own preferences using AI coding agents** (such as Google Antigravity, Claude Code, Cursor, GitHub Copilot, etc.).
-
-To achieve this ideal, the application intentionally avoids modern complex frontend build chains:
-- **Zero Frontend Build Step**: No Node.js, npm, Webpack, or Vite. The frontend runs purely on Vanilla JavaScript, Tailwind CSS, and CDN-loaded libraries.
-- **Readable & Transparent Codebase**: The entire frontend is organized in a single, well-structured file (`app.js`) with clear section headers, and the backend is a lightweight FastAPI server (`main.py`).
-- **AI Agent-Friendly Architecture**: Any edits to JavaScript, HTML, or Python files take effect immediately upon browser refresh or server restart. Both human developers and AI agents can rapidly inspect, debug, and modify features without build errors, bundling complexities, or tooling overhead.
-- Detailed developer and AI agent instructions are documented in [`AGENTS.md`](AGENTS.md) (and [`AGENTS_ja.md`](AGENTS_ja.md)).
-
----
-
-## 🚀 Key Features
-
-- **Jupyter Lab-like Cell Paradigm**: Edit and preview Markdown, LaTeX formulas (KaTeX), code blocks with syntax highlighting, and emojis cell-by-cell.
-- **Rich Keyboard Navigation**: Intuitive Command and Edit modes with comprehensive shortcut support (Vim-style navigation, cell split, insert, delete, reorder, in-cell search/replace, and go-to-line).
-- **Multi-Pane Workspace & Tab Drag-and-Drop**: Split the editor vertically up to 3 panes (`Ctrl + \`), drag-and-drop tabs between panes or to the right edge to split, and merge panes (`Ctrl + Alt + M`).
-- **Concurrent Multi-Session Support**: Launch independent sessions concurrently in different directories on automatically assigned dynamic ports (`18000`, `18002`, ...). Launching again in the same directory seamlessly restores and focuses the existing session.
-- **Direct File Launching & OS Integration**: Open files directly from the command line (`mded document.md`) or via desktop environment actions (double-click or "Open With"). The application automatically sets the target file's directory as the active workspace.
-- **Full-Featured File Browser**: Manage workspace files and folders with right-click context menu (create, rename, delete, duplicate, copy, cut, paste) and keyboard shortcuts.
-- **Table of Contents (ToC) Sidebar**: Instant heading outline with smooth jump-to-section.
-- **Clean Exporting Capabilities**: Export clean Markdown (without cell delimiters), standalone HTML, and browser-native PDF print.
-- **Graceful Shutdown**: Close the application and release server resources cleanly via the menu `Quit` button or `Ctrl + Shift + Q` with a confirmation dialog.
-- **No Frontend Build Step Required**: Works purely with a lightweight Python backend (FastAPI) and Vanilla JS + CDN assets. No Node.js or npm build step needed.
-
----
-
 ## 📦 Installation & Distribution
 
 This application supports multiple installation methods depending on your environment and preferences.
 
 ### Option A: For Users with Python Installed
 
-#### 1. For Developers / AI-Assisted Customization
-Run in editable mode to develop and customize the source code directly:
-
-```bash
-# 1. Clone repository and navigate
-git clone https://github.com/t2-Kusumoto/md_editor.git
-cd md_editor
-
-# 2. Create and activate a virtual environment
-# macOS / Linux
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Windows (PowerShell)
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-
-# 3. Install in editable mode
-pip install -e .
-
-# 4. Launch the application
-mded
-# Any changes to Python or JS files will reflect immediately without reinstalling!
-```
-
-#### 2. For Daily CLI Usage (Global command without activating venv)
+#### 1. For Daily CLI Usage (Global command without activating venv)
 
 **Using `pipx` or `uv`:**
 ```bash
@@ -95,20 +41,48 @@ ln -s "$(pwd)/.venv/bin/mded" ~/.local/bin/mded
 # Windows: Add .venv\Scripts to your user PATH or create a shortcut
 ```
 
+#### 2. For Developers / AI-Assisted Customization
+Run in editable mode to develop and customize the source code directly:
+
+```bash
+# 1. Clone repository and navigate
+git clone https://github.com/t2-Kusumoto/md_editor.git
+cd md_editor
+
+# 2. Create and activate a virtual environment
+# macOS / Linux
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Windows (PowerShell)
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+
+# 3. Install in editable mode
+pip install -e .
+
+# 4. Launch the application
+mded
+# Any changes to Python or JS files will reflect immediately without reinstalling!
+```
+
 ---
 
 ### Option B: Standalone Executable (For Systems without Python)
 
-Create a single standalone binary using PyInstaller:
+Even if Python is not installed on your system, you can download ready-to-use setup packages for your operating system (Windows / macOS / Linux) from [GitHub Releases](https://github.com/t2-Kusumoto/md_editor/releases).
 
-```bash
-python3 build.py
-```
-This builds an executable into the `dist/` directory (`dist/mded` on Linux/macOS or `dist/mded.exe` on Windows).
-Place this binary in any directory included in your system `PATH` and launch it directly from terminal:
-```bash
-mded
-```
+1. Download the latest release package or installer for your OS from **[GitHub Releases](https://github.com/t2-Kusumoto/md_editor/releases)**.
+2. Extract the archive (if applicable) and run the setup:
+   - **Windows**: Double-click `setup_mded.exe` to run the installer (the installation directory is automatically added to your user `PATH`).
+   - **Linux**: Extract the archive and run `./setup.sh` in the terminal (installs to `~/.local/bin/mded` and registers desktop entry and app icon).
+   - **macOS**: Extract the archive and run `./setup.sh` in the terminal (installs CLI to `~/.local/bin/mded` and creates `~/Applications/MD Editor.app` integrated with Spotlight / Finder).
+3. Once installed, launch it directly from any terminal:
+   ```bash
+   mded
+   ```
+
+> **Note**: If you prefer to build the standalone executable yourself using PyInstaller, run `python3 build.py` to generate the binary (`dist/mded` on Linux/macOS or `dist/mded.exe` on Windows) inside the `dist/` directory.
 
 ---
 
@@ -141,6 +115,35 @@ You can work on different projects simultaneously:
 ### 4. Graceful Shutdown
 - Click the **Quit** button in the top menu bar or press **`Ctrl + Shift + Q`**.
 - A confirmation dialog will appear. Clicking **Quit** (or pressing Enter) will cleanly shut down the backend server and release the port.
+
+---
+
+## 🌟 About This Project & Design Philosophy
+
+This application was created and developed with **Google Antigravity**.
+
+The core design philosophy of this project is to provide a clean, transparent, and approachable foundation that **users can freely customize and extend to their own preferences using AI coding agents** (such as Google Antigravity, Claude Code, Cursor, GitHub Copilot, etc.).
+
+To achieve this ideal, the application intentionally avoids modern complex frontend build chains:
+- **Zero Frontend Build Step**: No Node.js, npm, Webpack, or Vite. The frontend runs purely on Vanilla JavaScript, Tailwind CSS, and CDN-loaded libraries.
+- **Readable & Transparent Codebase**: The entire frontend is organized in a single, well-structured file (`app.js`) with clear section headers, and the backend is a lightweight FastAPI server (`main.py`).
+- **AI Agent-Friendly Architecture**: Any edits to JavaScript, HTML, or Python files take effect immediately upon browser refresh or server restart. Both human developers and AI agents can rapidly inspect, debug, and modify features without build errors, bundling complexities, or tooling overhead.
+- Detailed developer and AI agent instructions are documented in [`AGENTS.md`](AGENTS.md) (and [`AGENTS_ja.md`](AGENTS_ja.md)).
+
+---
+
+## 🚀 Key Features
+
+- **Jupyter Lab-like Cell Paradigm**: Edit and preview Markdown, LaTeX formulas (KaTeX), code blocks with syntax highlighting, and emojis cell-by-cell.
+- **Rich Keyboard Navigation**: Intuitive Command and Edit modes with comprehensive shortcut support (Vim-style navigation, cell split, insert, delete, reorder, in-cell search/replace, and go-to-line).
+- **Multi-Pane Workspace & Tab Drag-and-Drop**: Split the editor vertically up to 3 panes (`Ctrl + \`), drag-and-drop tabs between panes or to the right edge to split, and merge panes (`Ctrl + Alt + M`).
+- **Concurrent Multi-Session Support**: Launch independent sessions concurrently in different directories on automatically assigned dynamic ports (`18000`, `18002`, ...). Launching again in the same directory seamlessly restores and focuses the existing session.
+- **Direct File Launching & OS Integration**: Open files directly from the command line (`mded document.md`) or via desktop environment actions (double-click or "Open With"). The application automatically sets the target file's directory as the active workspace.
+- **Full-Featured File Browser**: Manage workspace files and folders with right-click context menu (create, rename, delete, duplicate, copy, cut, paste) and keyboard shortcuts.
+- **Table of Contents (ToC) Sidebar**: Instant heading outline with smooth jump-to-section.
+- **Clean Exporting Capabilities**: Export clean Markdown (without cell delimiters), standalone HTML, and browser-native PDF print.
+- **Graceful Shutdown**: Close the application and release server resources cleanly via the menu `Quit` button or `Ctrl + Shift + Q` with a confirmation dialog.
+- **No Frontend Build Step Required**: Works purely with a lightweight Python backend (FastAPI) and Vanilla JS + CDN assets. No Node.js or npm build step needed.
 
 ---
 

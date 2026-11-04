@@ -82,6 +82,21 @@ Even if Python is not installed on your system, you can download ready-to-use se
    mded
    ```
 
+#### ⚠️ Security & Verification
+This tool is open-source and safely developed. If you would like to verify the package before running the installer, we recommend checking it with [VirusTotal](https://www.virustotal.com/gui/home/upload):
+1. Visit [VirusTotal](https://www.virustotal.com/gui/home/upload).
+2. Drag and drop the downloaded archive file to scan.
+3. Alternatively, if you prefer not to upload the file, compute its SHA-256 hash and search for it under the "SEARCH" tab to verify its safety.
+
+*Note: Newly released versions may occasionally trigger false positives on certain antivirus engines.*
+
+#### 🛡️ If Windows SmartScreen Appears ("Windows protected your PC")
+If Windows SmartScreen displays a warning prompt when running the installer:
+1. Click **"More info"** on the blue dialog.
+2. Click the **"Run anyway"** button that appears in the bottom right corner.
+
+*Note: If the application still does not launch, right-click the `.exe` file ➔ select **Properties** ➔ check the **"Unblock"** checkbox at the bottom of the General tab, and click **OK**.*
+
 > **Note**: If you prefer to build the standalone executable yourself using PyInstaller, run `python3 build.py` to generate the binary (`dist/mded` on Linux/macOS or `dist/mded.exe` on Windows) inside the `dist/` directory.
 
 ---

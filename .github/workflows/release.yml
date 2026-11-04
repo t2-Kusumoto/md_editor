@@ -33,13 +33,13 @@ jobs:
         run: |
           cp dist/mded mded-linux-setup/mded
           chmod +x mded-linux-setup/mded mded-linux-setup/setup.sh mded-linux-setup/uninstall.sh
-          tar -czvf mded-linux-setup.tar.gz mded-linux-setup
+          tar -czvf "mded-${{ github.ref_name }}-linux-setup.tar.gz" mded-linux-setup
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: mded-linux-setup
-          path: mded-linux-setup.tar.gz
+          path: mded-${{ github.ref_name }}-linux-setup.tar.gz
           retention-days: 1
 
   # ----------------------------------------------------------------------------
@@ -67,13 +67,13 @@ jobs:
           cp dist/mded mded-mac-setup/mded
           rm -f mded-mac-setup/mded.placeholder
           chmod +x mded-mac-setup/mded mded-mac-setup/setup.sh mded-mac-setup/uninstall.sh mded-mac-setup/mded-launcher
-          tar -czvf mded-mac-setup.tar.gz mded-mac-setup
+          tar -czvf "mded-${{ github.ref_name }}-macos-setup.tar.gz" mded-mac-setup
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
           name: mded-mac-setup
-          path: mded-mac-setup.tar.gz
+          path: mded-${{ github.ref_name }}-macos-setup.tar.gz
           retention-days: 1
 
   # ----------------------------------------------------------------------------
@@ -114,13 +114,14 @@ jobs:
         shell: powershell
         run: |
           Copy-Item mded_ins\setup_mded.exe -Destination mded-win-setup\setup_mded.exe
-          Compress-Archive -Path mded-win-setup -DestinationPath mded-win-setup.zip
+          $zipName = "mded-${{ github.ref_name }}-windows-setup.zip"
+          Compress-Archive -Path mded-win-setup -DestinationPath $zipName
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: mded-win-setup
-          path: mded-win-setup.zip
+          path: mded-${{ github.ref_name }}-windows-setup.zip
           retention-days: 1
 
   # ----------------------------------------------------------------------------
@@ -141,13 +142,31 @@ jobs:
           path: release-artifacts
           merge-multiple: true
 
+      - name: Generate Release Notes Body
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          REPO_NAME: ${{ github.repository }}
+        run: |
+          cat << EOF | sed 's/^ *//' > release_body.md
+          ### 📥 ダウンロード (Downloads)
+
+          | OS | パッケージ | 内容・形式 |
+          | :--- | :--- | :--- |
+          | 🪟 **Windows** | [mded-${TAG_NAME}-windows-setup.zip](https://github.com/${REPO_NAME}/releases/download/${TAG_NAME}/mded-${TAG_NAME}-windows-setup.zip) | インストーラ（\`setup_mded.exe\`）同梱 ZIP |
+          | 🍎 **macOS** | [mded-${TAG_NAME}-macos-setup.tar.gz](https://github.com/${REPO_NAME}/releases/download/${TAG_NAME}/mded-${TAG_NAME}-macos-setup.tar.gz) | アプリ作成・セットアップスクリプト同梱 tar.gz |
+          | 🐧 **Linux** | [mded-${TAG_NAME}-linux-setup.tar.gz](https://github.com/${REPO_NAME}/releases/download/${TAG_NAME}/mded-${TAG_NAME}-linux-setup.tar.gz) | デスクトップ登録・セットアップスクリプト同梱 tar.gz |
+
+          ---
+          EOF
+
       - name: Create GitHub Release and Attach Packages
         uses: softprops/action-gh-release@v2
         with:
+          body_path: release_body.md
           files: |
-            release-artifacts/mded-linux-setup.tar.gz
-            release-artifacts/mded-mac-setup.tar.gz
-            release-artifacts/mded-win-setup.zip
+            release-artifacts/mded-${{ github.ref_name }}-linux-setup.tar.gz
+            release-artifacts/mded-${{ github.ref_name }}-macos-setup.tar.gz
+            release-artifacts/mded-${{ github.ref_name }}-windows-setup.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

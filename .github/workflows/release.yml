@@ -148,13 +148,13 @@ jobs:
           REPO_NAME: ${{ github.repository }}
         run: |
           cat << EOF | sed 's/^ *//' > release_body.md
-          ### 📥 ダウンロード (Downloads)
+          ### 📥 Downloads
 
-          | OS | パッケージ | 内容・形式 |
+          | OS | Package | Description |
           | :--- | :--- | :--- |
-          | 🪟 **Windows** | [mded-${TAG_NAME}-windows-setup.zip](https://github.com/${REPO_NAME}/releases/download/${TAG_NAME}/mded-${TAG_NAME}-windows-setup.zip) | インストーラ（\`setup_mded.exe\`）同梱 ZIP |
-          | 🍎 **macOS** | [mded-${TAG_NAME}-macos-setup.tar.gz](https://github.com/${REPO_NAME}/releases/download/${TAG_NAME}/mded-${TAG_NAME}-macos-setup.tar.gz) | アプリ作成・セットアップスクリプト同梱 tar.gz |
-          | 🐧 **Linux** | [mded-${TAG_NAME}-linux-setup.tar.gz](https://github.com/${REPO_NAME}/releases/download/${TAG_NAME}/mded-${TAG_NAME}-linux-setup.tar.gz) | デスクトップ登録・セットアップスクリプト同梱 tar.gz |
+          | 🪟 **Windows** | [mded-${TAG_NAME}-windows-setup.zip](https://github.com/${REPO_NAME}/releases/download/${TAG_NAME}/mded-${TAG_NAME}-windows-setup.zip) | ZIP package with installer (\`setup_mded.exe\`) |
+          | 🍎 **macOS** | [mded-${TAG_NAME}-macos-setup.tar.gz](https://github.com/${REPO_NAME}/releases/download/${TAG_NAME}/mded-${TAG_NAME}-macos-setup.tar.gz) | tar.gz archive with app setup script (\`setup.sh\`) |
+          | 🐧 **Linux** | [mded-${TAG_NAME}-linux-setup.tar.gz](https://github.com/${REPO_NAME}/releases/download/${TAG_NAME}/mded-${TAG_NAME}-linux-setup.tar.gz) | tar.gz archive with desktop setup script (\`setup.sh\`) |
 
           ---
           EOF

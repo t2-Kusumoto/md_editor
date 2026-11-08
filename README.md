@@ -1,5 +1,7 @@
 # Markdown Notebook Editor & Viewer (`md_editor`)
 
+This application was created and developed with **Google Antigravity**.
+
 [日本語版ドキュメント (Japanese README)](README_ja.md)
 
 > **Note**: This English documentation has been translated from Japanese using machine translation.
@@ -134,8 +136,6 @@ You can work on different projects simultaneously:
 ---
 
 ## 🌟 About This Project & Design Philosophy
-
-This application was created and developed with **Google Antigravity**.
 
 The core design philosophy of this project is to provide a clean, transparent, and approachable foundation that **users can freely customize and extend to their own preferences using AI coding agents** (such as Google Antigravity, Claude Code, Cursor, GitHub Copilot, etc.).
 

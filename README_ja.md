@@ -1,5 +1,7 @@
 # Markdown Notebook Editor & Viewer (`md_editor`)
 
+本アプリケーションは **Google Antigravity** を活用して作成されました。
+
 [English Document (英語版README)](README.md)
 
 Jupyter Lab に着想を得た、デスクトップ環境向けの軽量な Markdown ノートブックエディタ＆ビューアです。**編集 (Edit) モード** と **コマンド (View) モード** をシームレスに切り替えながら、セル単位で Markdown を執筆・プレビュー・操作できます。
@@ -132,8 +134,6 @@ mded path/to/notes.md
 ---
 
 ## 🌟 本プロジェクトについて・開発思想
-
-本アプリケーションは **Google Antigravity** を活用して作成されました。
 
 本プロジェクトは、**「ユーザーが AI コーディングエージェント（Google Antigravity、Claude Code、Cursor、GitHub Copilot など）を利用して、自分好みの使い勝手に合わせて自在にカスタマイズ・機能拡張していく」** ことを理想・設計思想として開発されています。
 

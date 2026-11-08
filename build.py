@@ -129,6 +129,12 @@ def main():
         elif os.path.exists(icon_ico):
             icon_args = ["--icon", icon_ico]
 
+    strip_args = []
+    if not sys.platform.startswith("win"):
+        # Strip symbol tables and debug info on Linux/macOS.
+        # This dramatically reduces package size (~13MB savings on Linux due to unstripped DWARF symbols in libpython and .so modules).
+        strip_args = ["--strip"]
+
     cmd = pyinstaller_cmd + [
         "--name", "mded",
         "--onefile",
@@ -139,7 +145,7 @@ def main():
         "--hidden-import", "uvicorn.lifespan.on",
         "--hidden-import", "websockets",
         "--hidden-import", "jinja2",
-    ] + icon_args + [
+    ] + icon_args + strip_args + [
         "-c", "md_editor/main.py"
     ]
 

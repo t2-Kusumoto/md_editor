@@ -2663,8 +2663,19 @@ function getCaretLineInfo(textarea, customPos = null) {
     mirror.style.fontWeight = comp.fontWeight;
     mirror.style.lineHeight = comp.lineHeight;
     mirror.style.letterSpacing = comp.letterSpacing;
-    mirror.style.padding = comp.padding;
-    mirror.style.border = comp.border;
+    mirror.style.whiteSpace = comp.whiteSpace || 'pre-wrap';
+    mirror.style.wordBreak = comp.wordBreak || 'normal';
+    mirror.style.wordWrap = comp.wordWrap || 'break-word';
+    mirror.style.overflowWrap = comp.overflowWrap || 'break-word';
+    mirror.style.paddingTop = comp.paddingTop;
+    mirror.style.paddingRight = comp.paddingRight;
+    mirror.style.paddingBottom = comp.paddingBottom;
+    mirror.style.paddingLeft = comp.paddingLeft;
+    mirror.style.borderTopWidth = comp.borderTopWidth;
+    mirror.style.borderRightWidth = comp.borderRightWidth;
+    mirror.style.borderBottomWidth = comp.borderBottomWidth;
+    mirror.style.borderLeftWidth = comp.borderLeftWidth;
+    mirror.style.borderStyle = comp.borderStyle;
 
     mirror.innerHTML = '';
     const textNode = document.createTextNode(textBefore);
@@ -2673,6 +2684,11 @@ function getCaretLineInfo(textarea, customPos = null) {
 
     mirror.appendChild(textNode);
     mirror.appendChild(marker);
+
+    const textAfter = (charAtCursor === '\n' || !charAtCursor) ? text.substring(pos) : text.substring(pos + 1);
+    if (textAfter) {
+        mirror.appendChild(document.createTextNode(textAfter));
+    }
 
     const mirrorRect = mirror.getBoundingClientRect();
     const markerRect = marker.getBoundingClientRect();
@@ -2722,8 +2738,10 @@ function updateLineNumbers(textarea, cellId) {
     mirror.style.letterSpacing = comp.letterSpacing;
     mirror.style.padding = '0px';
     mirror.style.border = '0px';
-    mirror.style.wordBreak = 'break-word';
-    mirror.style.whiteSpace = 'pre-wrap';
+    mirror.style.whiteSpace = comp.whiteSpace || 'pre-wrap';
+    mirror.style.wordBreak = comp.wordBreak || 'normal';
+    mirror.style.wordWrap = comp.wordWrap || 'break-word';
+    mirror.style.overflowWrap = comp.overflowWrap || 'break-word';
 
     mirror.innerHTML = '';
     const lineDivs = [];

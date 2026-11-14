@@ -8,6 +8,8 @@ This application was created and developed with **Google Antigravity**.
 
 A desktop-oriented, lightweight Markdown notebook editor & viewer inspired by Jupyter Lab. Write, view, and interact with Markdown cell-by-cell while seamlessly toggling between **Edit** and **Command (View)** modes.
 
+![application image](./assets/mded_img_skyblue_border.png)
+
 ---
 
 ## 📦 Installation & Distribution

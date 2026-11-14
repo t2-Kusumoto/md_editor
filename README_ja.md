@@ -6,6 +6,8 @@
 
 Jupyter Lab に着想を得た、デスクトップ環境向けの軽量な Markdown ノートブックエディタ＆ビューアです。**編集 (Edit) モード** と **コマンド (View) モード** をシームレスに切り替えながら、セル単位で Markdown を執筆・プレビュー・操作できます。
 
+![application image](./assets/mded_img_skyblue_border.png)
+
 ---
 
 ## 📦 インストールと配布 (Installation & Distribution)
